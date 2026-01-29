@@ -1,0 +1,41 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "DM Sans", "Space Grotesk", sans-serif;
+  color-scheme: light;
+  background-color: #f7f8fb;
+  color: #0f172a;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+:root.dark,
+.dark :root {
+  color-scheme: dark;
+  background-color: #05060b;
+  color: #f8fafc;
+}
+
+body {
+  @apply min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors duration-300 ease-out;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+::selection {
+  background-color: #ff8a05;
+  color: #05060b;
+}
+
+.gradient-card {
+  background-image:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.35), transparent 45%),
+    radial-gradient(circle at bottom right, rgba(255, 138, 5, 0.35), transparent 46%);
+}

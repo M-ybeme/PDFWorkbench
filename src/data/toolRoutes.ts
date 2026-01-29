@@ -1,0 +1,68 @@
+export type ToolRoute = {
+  id: string;
+  label: string;
+  summary: string;
+  version: string;
+  eta: string;
+  path: string;
+};
+
+export const toolRoutes: ToolRoute[] = [
+  {
+    id: "viewer",
+    label: "PDF Viewer",
+    summary:
+      "Upload PDFs, navigate pages, zoom, and inspect file metadata with a lightweight canvas renderer.",
+    version: "0.2.x",
+    eta: "Viewer MVP",
+    path: "viewer",
+  },
+  {
+    id: "merge",
+    label: "Merge",
+    summary: "Stack and reorder multiple PDFs, then export a compiled document in seconds.",
+    version: "0.3.x",
+    eta: "Merge & Split",
+    path: "merge",
+  },
+  {
+    id: "split",
+    label: "Split",
+    summary: "Extract exact page ranges or use quick presets such as split-every-N.",
+    version: "0.3.x",
+    eta: "Merge & Split",
+    path: "split",
+  },
+  {
+    id: "editor",
+    label: "Page Editor",
+    summary: "Reorder, rotate, and delete pages in an elegant thumbnail workspace.",
+    version: "0.4.x",
+    eta: "Page Editor",
+    path: "editor",
+  },
+  {
+    id: "images",
+    label: "Images → PDF",
+    summary: "Drag in image sets, choose layout presets, and create beautiful PDFs instantly.",
+    version: "0.5.x",
+    eta: "Images → PDF",
+    path: "images",
+  },
+  {
+    id: "compression",
+    label: "Compression",
+    summary: "Tune presets to shrink large PDFs while protecting text clarity.",
+    version: "0.6.x",
+    eta: "Compression",
+    path: "compression",
+  },
+  {
+    id: "signatures",
+    label: "Signatures",
+    summary: "Draw, type, and place signatures with precise coordinate mapping.",
+    version: "0.7.x",
+    eta: "Signatures",
+    path: "signatures",
+  },
+];
