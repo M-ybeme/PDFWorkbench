@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom", "jest"],
+    "isolatedModules": false,
+    "resolvePackageJsonExports": false,
+    "resolvePackageJsonImports": false,
+    "paths": {
+      "@vitest/expect": ["../node_modules/@vitest/expect/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": []
+}

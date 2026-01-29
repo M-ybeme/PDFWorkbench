@@ -6,7 +6,10 @@ import AppShell from "./components/AppShell";
 
 const renderWithRouter = () => {
   render(
-    <MemoryRouter initialEntries={["/"]}>
+    <MemoryRouter
+      initialEntries={["/"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <Routes>
         <Route path="/" element={<AppShell />}>
           <Route index element={<div>Home</div>} />
@@ -20,6 +23,6 @@ describe("AppShell", () => {
   it("shows navigation links for planned tools", () => {
     renderWithRouter();
     expect(screen.getByText(/PDF Viewer/i)).toBeInTheDocument();
-    expect(screen.getByText(/Merge/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Merge/i).length).toBeGreaterThan(0);
   });
 });

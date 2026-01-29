@@ -1,8 +1,24 @@
 import { Link } from "react-router-dom";
 
 import { toolRoutes } from "../data/toolRoutes";
+import { useActivityLog, type ActivityCategory } from "../state/activityLog";
+
+const badgeStyles: Record<ActivityCategory, string> = {
+  merge: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200",
+  "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
+  "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
+};
+
+const formatActivityTime = (timestamp: number) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(timestamp);
 
 const LandingPage = () => {
+  const entries = useActivityLog((state) => state.entries);
+  const clearActivity = useActivityLog((state) => state.clear);
+
   return (
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
@@ -99,6 +115,63 @@ const LandingPage = () => {
             ))}
           </div>
         </article>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
+              Workspace pulse
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-semibold text-slate-900 dark:text-white">
+              Recent activity
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300"
+            onClick={clearActivity}
+            disabled={entries.length === 0}
+          >
+            Clear log
+          </button>
+        </div>
+        {entries.length === 0 ? (
+          <p className="mt-6 text-sm text-slate-500 dark:text-slate-300">
+            Interact with the merge or split workspaces to populate this feed. We keep the last
+            dozen actions locally so you can see what shipped most recently.
+          </p>
+        ) : (
+          <ul className="mt-6 space-y-4">
+            {entries.slice(0, 6).map((entry) => (
+              <li
+                key={entry.id}
+                className="rounded-2xl border border-slate-200/60 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:text-slate-200"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badgeStyles[entry.type]}`}
+                  >
+                    {entry.type === "merge"
+                      ? "Merge"
+                      : entry.type === "split-selection"
+                        ? "Split selection"
+                        : "Split bundle"}
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {formatActivityTime(entry.timestamp)}
+                  </span>
+                </div>
+                <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
+                  {entry.label}
+                </p>
+                {entry.detail ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-300">{entry.detail}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400">

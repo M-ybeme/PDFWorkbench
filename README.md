@@ -1,6 +1,6 @@
 # PDF Workbench
 
-Foundational React + TypeScript front-end that will power the PDF Workbench toolkit described in `PDFWORKBENCH_ROADMAP.md`.
+Foundational React + TypeScript front-end that now ships a polished landing experience, a PDF viewer, merge and split workspaces, plus an activity log so you can keep tabs on recent exports. See `docs/PDFWORKBENCH_ROADMAP.md` for the long-term plan.
 
 ## Scripts
 
@@ -22,6 +22,13 @@ Foundational React + TypeScript front-end that will power the PDF Workbench tool
 - ESLint + Prettier for linting/formatting consistency
 - GitHub Actions CI + Netlify deployment scaffold for automation
 
+## Current Tools
+
+- **PDF Viewer** – Drag/drop loader with password prompts, zoom controls, thumbnail rail, metadata browser, and cached canvas renderer.
+- **Merge Workspace** – Stack PDFs from memory, reorder them, and download a merged artifact with consistent naming.
+- **Split Workspace** – Render interactive thumbnails, toggle selections, and export either the curated set or preset slices (bundled in ZIPs).
+- **Activity Log** – Persists the last dozen merge/split exports locally and surfaces them on the landing page for quick reference.
+
 ## Next Steps
 
-Follow the roadmap milestones beginning with 0.2.0 (PDF Viewer MVP) after validating that the 0.1.0 foundation deploys successfully on Netlify.
+Follow the roadmap milestones in `docs/PDFWORKBENCH_ROADMAP.md`, starting with the 0.2.x viewer refinements and building toward the editor, compression, and signature flows.

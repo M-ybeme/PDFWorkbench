@@ -4,35 +4,41 @@ This roadmap defines the milestones required to deliver a polished, production-q
 
 The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following core features:
 
-* PDF viewing
-* Merge / split
-* Page editing (reorder, rotate, delete)
-* Images → PDF
-* Compression
-* Signatures
-* Polished UI, accessibility, tests, and documentation
+- PDF viewing
+- Merge / split
+- Page editing (reorder, rotate, delete)
+- Images → PDF
+- Compression
+- Signatures
+- Polished UI, accessibility, tests, and documentation
 
 ---
 
-## Status — 2026-01-28
+## Status — 2026-01-29
 
-* Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
-* Next focus: kick off 0.2.0 viewer work by integrating `pdfjs-dist`, building the shared file-loader module, and prototyping the viewer layout (sidebar + canvas + controls).
+- Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
+- 0.2.0 viewer now ships drag/drop ingest, pdf.js rendering, cached page draws, richer metadata, and a scrollable thumbnail rail.
+- Merge/split data modeling + workflow outline captured in `docs/MERGE_SPLIT_PLAN.md`.
+- Merge workspace now ingests multiple PDFs, reorders them, and streams merged downloads via `pdf-lib`.
+- Split workspace now renders selectable thumbnails, per-page exports, and every-N presets bundled into ZIP downloads.
+- Password-protected PDFs now prompt for unlock codes directly inside the viewer and merge flow.
+- Merge pipeline now has automated coverage that verifies `pdf-lib` is invoked before downloads.
+- Next steps: broaden integration tests around the split exports and kick off 0.4.0 page editor work.
 
 ---
 
 ## Version Series Overview
 
-* **0.1.x — Foundations**: Project setup, navigation, core architecture
-* **0.2.x — PDF Viewer Core**: Viewing, navigation, thumbnails
-* **0.3.x — Merge & Split**: Core file manipulation workflows
-* **0.4.x — Page Editor**: Reorder, rotate, delete
-* **0.5.x — Images → PDF**: Build PDFs from image sets
-* **0.6.x — Compression**: Optimize/resize PDF output
-* **0.7.x — Signatures**: Drawing/placing signatures
-* **0.8.x — UX & Accessibility**: Fit & finish, keyboard controls
-* **0.9.x — Hardening**: Tests, error handling, docs
-* **1.0.0 — Stable Release**: Complete, polished suite
+- **0.1.x — Foundations**: Project setup, navigation, core architecture
+- **0.2.x — PDF Viewer Core**: Viewing, navigation, thumbnails
+- **0.3.x — Merge & Split**: Core file manipulation workflows
+- **0.4.x — Page Editor**: Reorder, rotate, delete
+- **0.5.x — Images → PDF**: Build PDFs from image sets
+- **0.6.x — Compression**: Optimize/resize PDF output
+- **0.7.x — Signatures**: Drawing/placing signatures
+- **0.8.x — UX & Accessibility**: Fit & finish, keyboard controls
+- **0.9.x — Hardening**: Tests, error handling, docs
+- **1.0.0 — Stable Release**: Complete, polished suite
 
 ---
 
@@ -44,20 +50,20 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* [x] Landing page with navigation placeholders
-* [x] Dark/light mode toggle
-* [x] Basic app shell and layout
+- [x] Landing page with navigation placeholders
+- [x] Dark/light mode toggle
+- [x] Basic app shell and layout
 
 ### Engineering
 
-* [x] Initialize project: React + TypeScript + Vite
-* [x] Add Tailwind design system
-* [x] Set up routing (React Router)
-* [x] Add Zustand or Context-based global store
-* [x] ESLint + Prettier + strict TS config
-* [x] Add Vitest + React Testing Library
-* [ ] GitHub Actions CI (lint + tests)
-* [x] Deploy initial build to Netlify
+- [x] Initialize project: React + TypeScript + Vite
+- [x] Add Tailwind design system
+- [x] Set up routing (React Router)
+- [x] Add Zustand or Context-based global store
+- [x] ESLint + Prettier + strict TS config
+- [x] Add Vitest + React Testing Library
+- [x] GitHub Actions CI (lint + tests)
+- [x] Deploy initial build to Netlify
 
 ---
 
@@ -67,23 +73,23 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Upload/drag-drop a PDF
-* Thumbnail sidebar with scroll
-* Page navigation (prev/next/jump)
-* Zoom controls (in/out, fit width, fit page)
-* Page count and file info
+- [x] Upload/drag-drop a PDF
+- [x] Thumbnail sidebar with scroll
+- [x] Page navigation (prev/next/jump)
+- [x] Zoom controls (in/out, fit width, fit page)
+- [x] Page count and file info
 
 ### Engineering
 
-* Integrate `pdfjs-dist` for rendering
-* Implement simple rendered-page cache
-* Create `LoadedPdf` data model
-* Create unified “file loader” module
+- [x] Integrate `pdfjs-dist` for rendering
+- [x] Implement simple rendered-page cache
+- [x] Create `LoadedPdf` data model
+- [x] Create unified “file loader” module
 
 ### Tests
 
-* Component tests for viewer interactions
-* Basic E2E: load sample PDF and navigate
+- Component tests for viewer interactions
+- Basic E2E: load sample PDF and navigate
 
 ---
 
@@ -93,23 +99,23 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* **Merge**: drop multiple PDFs, reorder list, merge & download
-* **Split**: select pages via thumbnails, extract selected pages
-* “Split every N pages” option
+- **Merge**: drop multiple PDFs, reorder list, merge & download
+- **Split**: select pages via thumbnails, extract selected pages
+- “Split every N pages” option
 
 ### Engineering
 
-* Integrate `pdf-lib` for manipulation
-* Add pure functions:
+- Integrate `pdf-lib` for manipulation
+- Add pure functions:
+  - `mergePdfs(files)`
+  - `extractPages(file, pageIndices)`
 
-  * `mergePdfs(files)`
-  * `extractPages(file, pageIndices)`
-* Reuse viewer data when splitting
+- Reuse viewer data when splitting
 
 ### Tests
 
-* Unit tests for merging and extraction
-* E2E: merge two PDFs, verify page count
+- Unit tests for merging and extraction
+- E2E: merge two PDFs, verify page count
 
 ---
 
@@ -119,23 +125,23 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Thumbnail grid editor:
+- Thumbnail grid editor:
+  - Drag-and-drop reordering
+  - Rotate left/right
+  - Delete pages
 
-  * Drag-and-drop reordering
-  * Rotate left/right
-  * Delete pages
-* "Apply & Download" button
-* Simple “Undo last change”
+- "Apply & Download" button
+- Simple “Undo last change”
 
 ### Engineering
 
-* Page model: `{ pageIndex, rotation, isDeleted }`
-* Rebuild final PDF only on download
+- Page model: `{ pageIndex, rotation, isDeleted }`
+- Rebuild final PDF only on download
 
 ### Tests
 
-* Unit tests for reorder/rotate/delete logic
-* E2E verifying new page order
+- Unit tests for reorder/rotate/delete logic
+- E2E verifying new page order
 
 ---
 
@@ -145,21 +151,21 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Drag/drop multiple images
-* Reorder images
-* Choose page size, orientation, fit mode (fit/fill/center)
-* “Create PDF & Download”
+- Drag/drop multiple images
+- Reorder images
+- Choose page size, orientation, fit mode (fit/fill/center)
+- “Create PDF & Download”
 
 ### Engineering
 
-* Read/preview images
-* Use `pdf-lib` to embed images
-* Layout utility for positioning/scaling
+- Read/preview images
+- Use `pdf-lib` to embed images
+- Layout utility for positioning/scaling
 
 ### Tests
 
-* Unit tests for layout math
-* E2E: images → PDF → verify page count
+- Unit tests for layout math
+- E2E: images → PDF → verify page count
 
 ---
 
@@ -169,21 +175,21 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Load PDF in “Compress” tool
-* Quality presets (High / Balanced / Smallest)
-* Display size before/after
-* “Compress & Download”
+- Load PDF in “Compress” tool
+- Quality presets (High / Balanced / Smallest)
+- Display size before/after
+- “Compress & Download”
 
 ### Engineering
 
-* Downscale images within PDF
-* Optional JPEG re-encoding
-* Maintain text/vector content
+- Downscale images within PDF
+- Optional JPEG re-encoding
+- Maintain text/vector content
 
 ### Tests
 
-* Ensure valid PDF output
-* E2E: compress sample and confirm smaller size
+- Ensure valid PDF output
+- E2E: compress sample and confirm smaller size
 
 ---
 
@@ -193,24 +199,24 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Signature modal:
+- Signature modal:
+  - Draw (canvas)
+  - Type (script fonts)
+  - Upload transparent PNG
 
-  * Draw (canvas)
-  * Type (script fonts)
-  * Upload transparent PNG
-* Drag/resize signature placement
-* Save signatures in local storage
+- Drag/resize signature placement
+- Save signatures in local storage
 
 ### Engineering
 
-* Store signature image(s)
-* Map viewer coordinates → PDF coordinates
-* Embed signature image in chosen location
+- Store signature image(s)
+- Map viewer coordinates → PDF coordinates
+- Embed signature image in chosen location
 
 ### Tests
 
-* Unit tests for coordinate mapping
-* E2E: place signature and export
+- Unit tests for coordinate mapping
+- E2E: place signature and export
 
 ---
 
@@ -220,22 +226,22 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Unified layout across all tools
-* Keyboard shortcuts:
+- Unified layout across all tools
+- Keyboard shortcuts:
+  - Viewer navigation: arrows, +/- for zoom
+  - Ctrl+O: open file
 
-  * Viewer navigation: arrows, +/- for zoom
-  * Ctrl+O: open file
-* ARIA roles and proper tab order
+- ARIA roles and proper tab order
 
 ### Engineering
 
-* Shared UI components (buttons, modals, drop zones)
-* a11y linting and manual keyboard testing
+- Shared UI components (buttons, modals, drop zones)
+- a11y linting and manual keyboard testing
 
 ### Tests
 
-* Component tests for keyboard bindings
-* E2E keyboard navigation scenario
+- Component tests for keyboard bindings
+- E2E keyboard navigation scenario
 
 ---
 
@@ -245,27 +251,27 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-* Help/About modal for each tool
-* Version stamp in footer
+- Help/About modal for each tool
+- Version stamp in footer
 
 ### Engineering
 
-* Test coverage pass for all core modules
-* Critical-path E2E tests:
+- Test coverage pass for all core modules
+- Critical-path E2E tests:
+  - Open → Edit → Download
+  - Merge → Download
+  - Images → PDF
+  - Compress
+  - Sign → Download
 
-  * Open → Edit → Download
-  * Merge → Download
-  * Images → PDF
-  * Compress
-  * Sign → Download
-* Error boundaries for React
-* Friendly error messages for corrupt/unsupported PDFs
+- Error boundaries for React
+- Friendly error messages for corrupt/unsupported PDFs
 
 ### Documentation
 
-* Updated README
-* `ARCHITECTURE.md`
-* `CONTRIBUTING.md`
+- Updated README
+- `ARCHITECTURE.md`
+- `CONTRIBUTING.md`
 
 ---
 
@@ -273,26 +279,25 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 **Definition of Done:**
 
-* All core features implemented:
+- All core features implemented:
+  - Viewer
+  - Merge
+  - Split/Extract
+  - Page Editor
+  - Images → PDF
+  - Compression
+  - Signatures
 
-  * Viewer
-  * Merge
-  * Split/Extract
-  * Page Editor
-  * Images → PDF
-  * Compression
-  * Signatures
-* Strong engineering support:
+- Strong engineering support:
+  - TypeScript types stable
+  - Tests (unit + integrations + E2E)
+  - CI running clean
+  - No major user-facing issues
 
-  * TypeScript types stable
-  * Tests (unit + integrations + E2E)
-  * CI running clean
-  * No major user-facing issues
-* UX:
-
-  * Consistent design
-  * Good accessibility
-  * Clear messaging about privacy
+- UX:
+  - Consistent design
+  - Good accessibility
+  - Clear messaging about privacy
 
 **At this point:** The tool is ready for public use, portfolio demonstration, and long-term maintenance.
 

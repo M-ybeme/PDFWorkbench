@@ -10,17 +10,17 @@ export const toolRoutes = [
     {
         id: "merge",
         label: "Merge",
-        summary: "Stack and reorder multiple PDFs, then export a compiled document in seconds.",
+        summary: "Stack, reorder, and download merged PDFs directly in the browser.",
         version: "0.3.x",
-        eta: "Merge & Split",
+        eta: "Merge workspace beta",
         path: "merge",
     },
     {
         id: "split",
         label: "Split",
-        summary: "Extract exact page ranges or use quick presets such as split-every-N.",
-        version: "0.3.x",
-        eta: "Merge & Split",
+        summary: "Preview every page as a tile, build custom selections, and export presets or bundles instantly.",
+        version: "0.4.x",
+        eta: "Split workspace beta",
         path: "split",
     },
     {
