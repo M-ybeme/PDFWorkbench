@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ActivityCategory = "merge" | "split-selection" | "split-preset";
+export type ActivityCategory = "merge" | "split-selection" | "split-preset" | "page-edit";
 
 export type ActivityEntry = {
   id: string;

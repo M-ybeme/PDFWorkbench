@@ -4,7 +4,7 @@ export const toolRoutes = [
         label: "PDF Viewer",
         summary: "Upload PDFs, navigate pages, zoom, and inspect file metadata with a lightweight canvas renderer.",
         version: "0.2.x",
-        eta: "Viewer MVP",
+        eta: "Viewer · Live",
         path: "viewer",
     },
     {
@@ -12,15 +12,15 @@ export const toolRoutes = [
         label: "Merge",
         summary: "Stack, reorder, and download merged PDFs directly in the browser.",
         version: "0.3.x",
-        eta: "Merge workspace beta",
+        eta: "Merge workspace · Live",
         path: "merge",
     },
     {
         id: "split",
         label: "Split",
         summary: "Preview every page as a tile, build custom selections, and export presets or bundles instantly.",
-        version: "0.4.x",
-        eta: "Split workspace beta",
+        version: "0.3.x",
+        eta: "Split presets · Live",
         path: "split",
     },
     {

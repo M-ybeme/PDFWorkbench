@@ -10,6 +10,7 @@ import { toolRoutes } from "./data/toolRoutes";
 const PdfViewerPage = lazy(() => import("./pages/PdfViewerPage"));
 const MergeToolPage = lazy(() => import("./pages/MergeToolPage"));
 const SplitToolPage = lazy(() => import("./pages/SplitToolPage"));
+const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
 
 const suspenseFallback = (label: string) => (
   <div className="rounded-3xl border border-dashed border-slate-300/70 bg-white/80 p-10 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
@@ -35,6 +36,12 @@ const splitElement = (
   </Suspense>
 );
 
+const editorElement = (
+  <Suspense fallback={suspenseFallback("page editor")}>
+    <PageEditorPage />
+  </Suspense>
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -50,6 +57,8 @@ const router = createBrowserRouter([
             mergeElement
           ) : tool.id === "split" ? (
             splitElement
+          ) : tool.id === "editor" ? (
+            editorElement
           ) : (
             <ToolPlaceholder tool={tool} />
           ),

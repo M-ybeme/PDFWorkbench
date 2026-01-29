@@ -49,3 +49,8 @@ export const buildSplitZipFileName = (sourceName: string) => {
   const stem = sanitizeFileStem(sourceName, "split");
   return `${stem}-bundle-${timestampToken()}.zip`;
 };
+
+export const buildEditedPdfFileName = (sourceName: string) => {
+  const stem = sanitizeFileStem(sourceName, "edited");
+  return `${stem}-page-editor-${timestampToken()}.pdf`;
+};

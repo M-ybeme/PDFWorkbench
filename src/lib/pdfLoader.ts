@@ -98,15 +98,18 @@ const mapPdfJsError = (reason: unknown): PdfLoadError => {
 };
 
 export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Promise<LoadedPdf> => {
-  const rawData = new Uint8Array(await file.arrayBuffer());
+  const retainedData = new Uint8Array(await file.arrayBuffer());
   let password: string | undefined;
 
   // Re-attempt loading if the user provides a password after an initial failure.
   for (;;) {
     let doc: PDFDocumentProxy | null = null;
+    // pdf.js transfers the provided buffer into its worker, which neuters the source array.
+    // Clone the retained bytes before each attempt so we can safely reuse the originals later.
+    const pdfJsBytes = retainedData.slice();
 
     try {
-      const loadingTask = getDocument({ data: rawData, password });
+      const loadingTask = getDocument({ data: pdfJsBytes, password });
       doc = await loadingTask.promise;
       let info: Record<string, unknown> = {};
       try {
@@ -149,11 +152,11 @@ export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Pro
       return {
         id: createId(),
         name: file.name,
-        size: file.size,
+        size: retainedData.byteLength,
         lastModified: file.lastModified,
         pageCount: doc.numPages,
         pdfVersion: pdfjsVersion,
-        data: rawData,
+        data: retainedData,
         metadata,
         doc,
       };

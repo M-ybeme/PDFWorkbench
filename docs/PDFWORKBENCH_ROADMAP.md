@@ -122,23 +122,22 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-- Thumbnail grid editor:
-  - Drag-and-drop reordering
-  - Rotate left/right
-  - Delete pages
-
-- "Apply & Download" button
-- Simple “Undo last change”
+- [x] Thumbnail grid editor for drag-and-drop reordering
+- [x] Inline rotate left/right controls on every tile
+- [x] Delete/restore toggle with overlay treatment
+- [x] "Apply & Download" primary call-to-action
+- [x] Simple "Undo last change" history stack
 
 ### Engineering
 
-- Page model: `{ pageIndex, rotation, isDeleted }`
-- Rebuild final PDF only on download
+- [x] Page state model (`EditablePage`) with rotation + delete flags
+- [x] `applyPageEdits` pipeline that rebuilds the PDF on export
+- [x] Local thumbnail renderer reusing the pdf.js worker config
 
 ### Tests
 
-- Unit tests for reorder/rotate/delete logic
-- E2E verifying new page order
+- [x] Unit tests for reorder/rotate/delete logic (`pdfEdit.test.ts`)
+- [x] E2E verifying new page order and deletes (`pdfEdit.test.ts` width/rotation assertions)
 
 ---
 

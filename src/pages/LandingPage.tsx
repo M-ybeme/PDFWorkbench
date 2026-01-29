@@ -7,6 +7,7 @@ const badgeStyles: Record<ActivityCategory, string> = {
   merge: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200",
   "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
   "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
+  "page-edit": "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
 };
 
 const formatActivityTime = (timestamp: number) =>
@@ -154,7 +155,9 @@ const LandingPage = () => {
                       ? "Merge"
                       : entry.type === "split-selection"
                         ? "Split selection"
-                        : "Split bundle"}
+                        : entry.type === "split-preset"
+                          ? "Split bundle"
+                          : "Page edits"}
                   </span>
                   <span className="text-xs text-slate-400 dark:text-slate-500">
                     {formatActivityTime(entry.timestamp)}
