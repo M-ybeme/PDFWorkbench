@@ -8,6 +8,7 @@ const badgeStyles: Record<ActivityCategory, string> = {
   "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
   "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
   "page-edit": "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
+  "images-to-pdf": "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-200",
 };
 
 const formatActivityTime = (timestamp: number) =>
@@ -19,35 +20,37 @@ const formatActivityTime = (timestamp: number) =>
 const LandingPage = () => {
   const entries = useActivityLog((state) => state.entries);
   const clearActivity = useActivityLog((state) => state.clear);
+  const upcomingTools = toolRoutes.filter((tool) => tool.status === "upcoming");
+  const featuredUpcoming = upcomingTools.slice(0, 3);
 
   return (
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          Phase 0.3.0
+          Phase 0.5.0
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
           Shipping
         </p>
         <h1 className="font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl">
-          Merge and split PDFs entirely in your browser.
+          Edit PDFs and build polished exports without leaving the browser.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
-          PDF Workbench now pairs the viewer MVP with production-ready merge and split workspaces.
-          Drag in locked or unlocked files, preview every page, and export combined documents or
-          preset bundles without leaving the tab.
+          PDF Workbench now layers page-level editing and the new Images→PDF studio on top of the
+          viewer, merge, and split flows. Drag files, reorder or rotate pages, auto-repair images,
+          and export multi-page PDFs instantly—all in the same tab.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            to="/split"
+            to="/images"
             className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
           >
-            Open Split Workspace →
+            Try Images → PDF →
           </Link>
           <Link
-            to="/merge"
+            to="/editor"
             className="inline-flex items-center gap-3 rounded-full border border-slate-900/20 px-6 py-3 text-slate-700 transition hover:border-slate-900 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/30 dark:text-slate-200"
           >
-            Review Merge Flow
+            Review Page Editor
           </Link>
         </div>
         <dl className="mt-10 grid grid-cols-1 gap-6 text-sm uppercase tracking-[0.3em] text-slate-500 md:grid-cols-3">
@@ -84,9 +87,10 @@ const LandingPage = () => {
             <li>✅ PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail</li>
             <li>✅ Merge workspace to stack, reorder, and download multi-file bundles instantly</li>
             <li>✅ Split workspace with selectable tiles, custom exports, and every-N ZIP bundles</li>
-            <li>✅ Password prompts plus local activity log covering merge & split actions</li>
-            <li>✅ Light/dark theming and responsive app shell shared across all tools</li>
-            <li>✅ ESLint, Vitest, and Netlify CI keeping the toolchain honest</li>
+            <li>✅ Page editor with drag-to-reorder, rotate/delete controls, and undo history</li>
+            <li>✅ Images→PDF studio with layout presets, PNG integrity guard, and instant downloads</li>
+            <li>✅ Password prompts, local activity log, and Playwright coverage for merge/editor/images</li>
+            <li>✅ Light/dark theming, responsive shell, and ESLint+Vitest+CI keeping the stack honest</li>
           </ul>
         </article>
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
@@ -97,21 +101,28 @@ const LandingPage = () => {
             Upcoming tool drops
           </h2>
           <div className="mt-6 space-y-5">
-            {toolRoutes.slice(0, 3).map((tool) => (
-              <div
-                key={tool.id}
-                className="rounded-2xl border border-slate-200/50 p-4 dark:border-white/10"
-              >
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400">
-                  <span>{tool.eta}</span>
-                  <span>{tool.version}</span>
+            {featuredUpcoming.length > 0 ? (
+              featuredUpcoming.map((tool) => (
+                <div
+                  key={tool.id}
+                  className="rounded-2xl border border-slate-200/50 p-4 dark:border-white/10"
+                >
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400">
+                    <span>{tool.eta}</span>
+                    <span>{tool.version}</span>
+                  </div>
+                  <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    {tool.label}
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{tool.summary}</p>
                 </div>
-                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                  {tool.label}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">{tool.summary}</p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                Every announced tool is live—compression and signatures are next up once 0.6.0
+                planning wraps.
+              </p>
+            )}
           </div>
         </article>
       </section>
@@ -157,7 +168,9 @@ const LandingPage = () => {
                         ? "Split selection"
                         : entry.type === "split-preset"
                           ? "Split bundle"
-                          : "Page edits"}
+                          : entry.type === "page-edit"
+                            ? "Page edits"
+                            : "Images → PDF"}
                   </span>
                   <span className="text-xs text-slate-400 dark:text-slate-500">
                     {formatActivityTime(entry.timestamp)}

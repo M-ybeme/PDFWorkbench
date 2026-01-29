@@ -11,6 +11,7 @@ const PdfViewerPage = lazy(() => import("./pages/PdfViewerPage"));
 const MergeToolPage = lazy(() => import("./pages/MergeToolPage"));
 const SplitToolPage = lazy(() => import("./pages/SplitToolPage"));
 const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
+const ImagesToPdfPage = lazy(() => import("./pages/ImagesToPdfPage"));
 
 const suspenseFallback = (label: string) => (
   <div className="rounded-3xl border border-dashed border-slate-300/70 bg-white/80 p-10 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
@@ -42,27 +43,38 @@ const editorElement = (
   </Suspense>
 );
 
+const imagesElement = (
+  <Suspense fallback={suspenseFallback("images workspace")}>
+    <ImagesToPdfPage />
+  </Suspense>
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
     element: <AppShell />,
     children: [
       { index: true, element: <LandingPage /> },
-      ...toolRoutes.map((tool) => ({
-        path: tool.path,
-        element:
-          tool.id === "viewer" ? (
-            viewerElement
-          ) : tool.id === "merge" ? (
-            mergeElement
-          ) : tool.id === "split" ? (
-            splitElement
-          ) : tool.id === "editor" ? (
-            editorElement
-          ) : (
-            <ToolPlaceholder tool={tool} />
-          ),
-      })),
+      ...toolRoutes.map((tool) => {
+        console.log("route mapping", tool.id);
+        return {
+          path: tool.path,
+          element:
+            tool.id === "viewer" ? (
+              viewerElement
+            ) : tool.id === "merge" ? (
+              mergeElement
+            ) : tool.id === "split" ? (
+              splitElement
+            ) : tool.id === "editor" ? (
+              editorElement
+            ) : tool.id === "images" ? (
+              imagesElement
+            ) : (
+              <ToolPlaceholder tool={tool} />
+            ),
+        };
+      }),
       { path: "*", element: <NotFoundPage /> },
     ],
   },

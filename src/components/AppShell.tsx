@@ -27,7 +27,7 @@ const AppShell = () => {
                 PDF WORKBENCH
               </p>
               <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-                v0.1 Foundations
+                v0.5 Momentum
               </p>
             </div>
             <div className="flex gap-2">

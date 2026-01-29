@@ -7,6 +7,7 @@ const badgeStyles = {
     "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
     "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
     "page-edit": "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
+    "images-to-pdf": "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-200",
 };
 const formatActivityTime = (timestamp) => new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -21,6 +22,8 @@ const LandingPage = () => {
                                                     ? "Split selection"
                                                     : entry.type === "split-preset"
                                                         ? "Split bundle"
-                                                        : "Page edits" }), _jsx("span", { className: "text-xs text-slate-400 dark:text-slate-500", children: formatActivityTime(entry.timestamp) })] }), _jsx("p", { className: "mt-2 text-base font-semibold text-slate-900 dark:text-white", children: entry.label }), entry.detail ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: entry.detail })) : null] }, entry.id))) }))] }), _jsx("section", { className: "rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400", children: _jsx("p", { children: "Looking ahead? Each tool route above is wired for future feature development. Swap the placeholder view with the real workflow as soon as its milestone becomes active." }) })] }));
+                                                        : entry.type === "page-edit"
+                                                            ? "Page edits"
+                                                            : "Images → PDF" }), _jsx("span", { className: "text-xs text-slate-400 dark:text-slate-500", children: formatActivityTime(entry.timestamp) })] }), _jsx("p", { className: "mt-2 text-base font-semibold text-slate-900 dark:text-white", children: entry.label }), entry.detail ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: entry.detail })) : null] }, entry.id))) }))] }), _jsx("section", { className: "rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400", children: _jsx("p", { children: "Looking ahead? Each tool route above is wired for future feature development. Swap the placeholder view with the real workflow as soon as its milestone becomes active." }) })] }));
 };
 export default LandingPage;

@@ -22,8 +22,9 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - Merge workspace now ingests multiple PDFs, reorders them, and streams merged downloads via `pdf-lib`.
 - Split workspace now renders selectable thumbnails, per-page exports, and every-N presets bundled into ZIP downloads.
 - Password-protected PDFs now prompt for unlock codes directly inside the viewer and merge flow.
-- Merge pipeline now has automated coverage that verifies `pdf-lib` is invoked before downloads.
-- Next steps: broaden integration tests around the split exports and kick off 0.4.0 page editor work.
+- Page editor (0.4.0) is live with reorder/rotate/delete controls, undo stack, and covered by unit + Playwright tests.
+- Images→PDF (0.5.0) now supports layout presets, PNG integrity checks with automatic re-encoding fallbacks, and a stable E2E download flow.
+- Next steps: begin 0.6.0 compression tooling and related automation.
 
 ---
 
@@ -147,21 +148,23 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-- Drag/drop multiple images
-- Reorder images
-- Choose page size, orientation, fit mode (fit/fill/center)
-- “Create PDF & Download”
+- [x] Drag/drop multiple images
+- [x] Reorder images
+- [x] Choose page size, orientation, fit mode (fit/fill/center)
+- [x] “Create PDF & Download”
 
 ### Engineering
 
-- Read/preview images
-- Use `pdf-lib` to embed images
-- Layout utility for positioning/scaling
+- [x] Read/preview images
+- [x] Use `pdf-lib` to embed images
+- [x] Layout utility for positioning/scaling
+- [x] PNG integrity guard with automatic canvas re-encoding (prevents `embedPng` hang)
 
 ### Tests
 
-- Unit tests for layout math
-- E2E: images → PDF → verify page count
+- [x] Unit tests for layout math
+- [x] Unit tests for PNG integrity heuristics
+- [x] E2E: images → PDF → verify page count + download completes reliably
 
 ---
 

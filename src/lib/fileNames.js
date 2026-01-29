@@ -36,3 +36,9 @@ export const buildEditedPdfFileName = (sourceName) => {
     const stem = sanitizeFileStem(sourceName, "edited");
     return `${stem}-page-editor-${timestampToken()}.pdf`;
 };
+export const buildImagesPdfFileName = (primaryName, imageCount) => {
+    const stem = primaryName
+        ? sanitizeFileStem(primaryName, "images")
+        : fallbackStem("images-to-pdf");
+    return `${stem}-${Math.max(1, imageCount)}images-${timestampToken()}.pdf`;
+};

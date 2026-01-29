@@ -36,7 +36,7 @@ export const toolRoutes = [
         label: "Images → PDF",
         summary: "Drag in image sets, choose layout presets, and create beautiful PDFs instantly.",
         version: "0.5.x",
-        eta: "Images → PDF",
+        eta: "Images workspace · WIP",
         path: "images",
     },
     {
