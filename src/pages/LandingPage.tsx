@@ -23,33 +23,31 @@ const LandingPage = () => {
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          Phase 0.1.0
+          Phase 0.3.0
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-          Active
+          Shipping
         </p>
         <h1 className="font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl">
-          Build a polished, private PDF toolkit directly in the browser.
+          Merge and split PDFs entirely in your browser.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
-          PDF Workbench is a client-side suite built with React, Vite, and Tailwind. Phase 0.1.0
-          lays the groundwork: routing, theming, state, and the landing experience that future tools
-          will plug into.
+          PDF Workbench now pairs the viewer MVP with production-ready merge and split workspaces.
+          Drag in locked or unlocked files, preview every page, and export combined documents or
+          preset bundles without leaving the tab.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            to="/viewer"
+            to="/split"
             className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
           >
-            Jump to Viewer Plan →
+            Open Split Workspace →
           </Link>
-          <a
-            href="https://www.netlify.com/"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/merge"
             className="inline-flex items-center gap-3 rounded-full border border-slate-900/20 px-6 py-3 text-slate-700 transition hover:border-slate-900 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/30 dark:text-slate-200"
           >
-            Netlify Deploy Target
-          </a>
+            Review Merge Flow
+          </Link>
         </div>
         <dl className="mt-10 grid grid-cols-1 gap-6 text-sm uppercase tracking-[0.3em] text-slate-500 md:grid-cols-3">
           <div>
@@ -76,18 +74,18 @@ const LandingPage = () => {
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Foundations
+            Phase 0.3.0
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
-            What ships in 0.1.0?
+            What's live right now?
           </h2>
           <ul className="mt-6 space-y-4 text-sm text-slate-600 dark:text-slate-300">
-            <li>✅ Vite React + TypeScript baseline with strict compiler settings</li>
-            <li>✅ Tailwind-driven shell with expressive typography and dual themes</li>
-            <li>✅ React Router layout ready for every roadmap tool</li>
-            <li>✅ Zustand store powering theme + navigation state with persistence</li>
-            <li>✅ ESLint, Prettier, Vitest, and GitHub Actions to protect the main branch</li>
-            <li>✅ Netlify configuration placeholder for frictionless deploys</li>
+            <li>✅ PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail</li>
+            <li>✅ Merge workspace to stack, reorder, and download multi-file bundles instantly</li>
+            <li>✅ Split workspace with selectable tiles, custom exports, and every-N ZIP bundles</li>
+            <li>✅ Password prompts plus local activity log covering merge & split actions</li>
+            <li>✅ Light/dark theming and responsive app shell shared across all tools</li>
+            <li>✅ ESLint, Vitest, and Netlify CI keeping the toolchain honest</li>
           </ul>
         </article>
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">

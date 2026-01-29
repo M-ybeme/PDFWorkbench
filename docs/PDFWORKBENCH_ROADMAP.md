@@ -99,23 +99,20 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
-- **Merge**: drop multiple PDFs, reorder list, merge & download
-- **Split**: select pages via thumbnails, extract selected pages
-- “Split every N pages” option
+- [x] **Merge**: drop multiple PDFs, reorder list, merge & download
+- [x] **Split**: render selectable thumbnails, extract focused selections
+- [x] “Split every N pages” option with bundled ZIP download
 
 ### Engineering
 
-- Integrate `pdf-lib` for manipulation
-- Add pure functions:
-  - `mergePdfs(files)`
-  - `extractPages(file, pageIndices)`
-
-- Reuse viewer data when splitting
+- [x] Integrate `pdf-lib` for merge/split manipulation paths
+- [x] Add pure functions (`mergePdfs`, `extractPagesFromLoadedPdf`, `splitPdfByChunkSize`, `buildZipFromEntries`)
+- [x] Reuse viewer loader + metadata when entering the split workspace
 
 ### Tests
 
-- Unit tests for merging and extraction
-- E2E: merge two PDFs, verify page count
+- [x] Unit tests for merging and extraction flows (`pdfMerge.test.ts`, `pdfSplit.test.ts`)
+- [x] E2E-lite: merge two PDFs and verify resulting page count (`src/lib/pdfMerge.test.ts`)
 
 ---
 
