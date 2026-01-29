@@ -368,7 +368,7 @@ const PageEditorPage = () => {
       triggerBlobDownload(blob, fileName);
       const kept = pages.filter((page) => !page.isDeleted).length;
       const deleted = pages.length - kept;
-      const rotated = pages.filter((page) => (page.rotation % 360 + 360) % 360 !== 0).length;
+      const rotated = pages.filter((page) => ((page.rotation % 360) + 360) % 360 !== 0).length;
       setDownloadSuccess(`Exported ${kept} page${kept === 1 ? "" : "s"}.`);
       addActivityEntry({
         type: "page-edit",
@@ -503,9 +503,7 @@ const PageEditorPage = () => {
               </p>
             </div>
             {pages.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-300">
-                Loading pages...
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-300">Loading pages...</p>
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -539,7 +537,9 @@ const PageEditorPage = () => {
                             src={thumbnails[page.id]}
                             alt={`Page ${index + 1}`}
                             className="h-full w-full object-contain"
-                            style={{ transform: `rotate(${((page.rotation % 360) + 360) % 360}deg)` }}
+                            style={{
+                              transform: `rotate(${((page.rotation % 360) + 360) % 360}deg)`,
+                            }}
                           />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
@@ -547,7 +547,10 @@ const PageEditorPage = () => {
                           </span>
                         )}
                         {page.isDeleted ? (
-                          <span className="absolute inset-0 bg-rose-500/10" aria-hidden="true"></span>
+                          <span
+                            className="absolute inset-0 bg-rose-500/10"
+                            aria-hidden="true"
+                          ></span>
                         ) : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
@@ -594,6 +597,13 @@ const PageEditorPage = () => {
                   className="mt-4 rounded-2xl border border-dashed border-slate-300/70 px-4 py-2 text-center text-xs text-slate-400 dark:border-white/20"
                   role="button"
                   aria-label="Move page to end"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleReorder(null);
+                    }
+                  }}
                   onDragOver={handlePageDragOver}
                   onDrop={(event) => handlePageDrop(event, null)}
                 >

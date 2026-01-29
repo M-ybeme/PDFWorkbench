@@ -36,8 +36,14 @@ test.describe("Page editor E2E", () => {
 
     await expect(cards.first().getByText(/Page 1/i)).toBeVisible();
 
-    await cards.nth(1).getByRole("button", { name: /Rotate \+90°/i }).click();
-    await cards.nth(2).getByRole("button", { name: /Delete/i }).click();
+    await cards
+      .nth(1)
+      .getByRole("button", { name: /Rotate \+90°/i })
+      .click();
+    await cards
+      .nth(2)
+      .getByRole("button", { name: /Delete/i })
+      .click();
     await expect(cards.nth(2).getByText(/Deleted/i)).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");

@@ -1,7 +1,7 @@
 import "vitest";
 
 declare module "vitest" {
-  interface Assertion<T = any> {
+  interface Assertion<T = unknown> {
     toBe(expected: T): void;
     toEqual<E>(expected: E): void;
     toMatchObject<E extends object>(expected: E): void;
@@ -11,7 +11,7 @@ declare module "vitest" {
     toBeGreaterThanOrEqual(value: number | bigint): void;
     toHaveBeenCalled(): void;
     toHaveBeenCalledTimes(times: number): void;
-    toHaveBeenCalledWith(...args: any[]): void;
+    toHaveBeenCalledWith(...args: unknown[]): void;
     toBeInTheDocument(): void;
     toThrow(expected?: unknown): void;
     rejects: {

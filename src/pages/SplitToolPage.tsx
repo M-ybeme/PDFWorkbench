@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
 import clsx from "clsx";
 
 import PasswordPromptModal from "../components/PasswordPromptModal";
@@ -423,12 +416,16 @@ const SplitToolPage = () => {
             <section className="rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-900 dark:text-white">{pdf.name}</p>
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {pdf.name}
+                  </p>
                   <p className="text-sm text-slate-500 dark:text-slate-300">
                     {pdf.pageCount} pages - {formatBytes(pdf.size)}
                   </p>
                 </div>
-                <div className="text-xs text-slate-400 dark:text-slate-300">PDF v{pdf.pdfVersion}</div>
+                <div className="text-xs text-slate-400 dark:text-slate-300">
+                  PDF v{pdf.pdfVersion}
+                </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 text-sm">
                 <button
@@ -461,7 +458,11 @@ const SplitToolPage = () => {
                 </button>
               </div>
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">
-                Selection: <span className="font-semibold text-slate-900 dark:text-white">{selectionCount}</span> page(s)
+                Selection:{" "}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {selectionCount}
+                </span>{" "}
+                page(s)
               </p>
             </section>
 
@@ -481,7 +482,11 @@ const SplitToolPage = () => {
                   disabled={!canDownloadSelection}
                   onClick={handleSelectionDownload}
                 >
-                  {isSelectionDownloading ? "Preparing..." : selectionCount === 0 ? "Select pages" : "Download selection"}
+                  {isSelectionDownloading
+                    ? "Preparing..."
+                    : selectionCount === 0
+                      ? "Select pages"
+                      : "Download selection"}
                 </button>
               </div>
               {selectionError ? (
@@ -507,7 +512,10 @@ const SplitToolPage = () => {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 text-sm">
-                  <label className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-300">
+                  <label
+                    className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-300"
+                    htmlFor="page-interval-input"
+                  >
                     Page interval
                   </label>
                   <input
@@ -516,6 +524,7 @@ const SplitToolPage = () => {
                     max={200}
                     value={splitSize}
                     onChange={handleSplitSizeChange}
+                    id="page-interval-input"
                     className="w-32 rounded-2xl border border-slate-300/70 bg-transparent px-3 py-2 text-sm dark:border-white/20"
                   />
                 </div>
@@ -545,7 +554,9 @@ const SplitToolPage = () => {
                 Page rail
               </p>
               {thumbnailStatus === "rendering" ? (
-                <p className="mt-4 text-sm text-slate-500 dark:text-slate-300">Rendering thumbnails...</p>
+                <p className="mt-4 text-sm text-slate-500 dark:text-slate-300">
+                  Rendering thumbnails...
+                </p>
               ) : null}
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {thumbnails.map((thumb) => {
@@ -568,7 +579,9 @@ const SplitToolPage = () => {
                         className="h-48 w-full rounded-xl object-cover"
                       />
                       <div className="mt-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
-                        <span className="text-slate-500 dark:text-slate-300">Page {thumb.pageNumber}</span>
+                        <span className="text-slate-500 dark:text-slate-300">
+                          Page {thumb.pageNumber}
+                        </span>
                         <span
                           className={clsx(
                             "rounded-full px-2 py-0.5",

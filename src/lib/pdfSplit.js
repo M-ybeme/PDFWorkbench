@@ -7,9 +7,7 @@ const cloneToArrayBuffer = (source) => {
     return buffer;
 };
 const normalizePages = (pageNumbers, pageCount) => {
-    const sanitized = Array.from(new Set(pageNumbers
-        .map((page) => Math.trunc(page))
-        .filter((page) => page >= 1 && page <= pageCount))).sort((a, b) => a - b);
+    const sanitized = Array.from(new Set(pageNumbers.map((page) => Math.trunc(page)).filter((page) => page >= 1 && page <= pageCount))).sort((a, b) => a - b);
     if (sanitized.length === 0) {
         throw new PdfLoadError("unsupported", "Select at least one valid page before splitting.");
     }

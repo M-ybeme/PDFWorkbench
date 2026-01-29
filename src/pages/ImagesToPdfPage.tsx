@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useCallback, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import clsx from "clsx";
 import { PDFDocument } from "pdf-lib";
 
@@ -80,13 +73,17 @@ const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: EmbeddableMimeType) =
   new Promise<Blob>((resolve, reject) => {
     const quality = mimeType === "image/jpeg" ? 0.92 : undefined;
     if (canvas.toBlob) {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error("Failed to encode image."));
-        }
-      }, mimeType, quality);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Failed to encode image."));
+          }
+        },
+        mimeType,
+        quality,
+      );
       return;
     }
     try {
@@ -194,7 +191,8 @@ const buildAsset = async (file: File): Promise<ImageAsset> => {
   };
 };
 
-const getPresetById = (id: string) => PAGE_PRESETS.find((preset) => preset.id === id) ?? PAGE_PRESETS[0];
+const getPresetById = (id: string) =>
+  PAGE_PRESETS.find((preset) => preset.id === id) ?? PAGE_PRESETS[0];
 
 const ImagesToPdfPage = () => {
   const [images, setImages] = useState<ImageAsset[]>([]);
@@ -216,45 +214,54 @@ const ImagesToPdfPage = () => {
     return { width: preset.height, height: preset.width };
   }, [orientation, preset.height, preset.width]);
 
-  const handleFiles = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) {
-      return;
-    }
-    setError(null);
-    const accepted: ImageAsset[] = [];
-    for (const file of Array.from(files)) {
-      if (!isImageFile(file)) {
-        setError("Only image files are supported.");
-        continue;
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) {
+        return;
       }
-      if (images.length + accepted.length >= MAX_IMAGES) {
-        setError(`Limit ${MAX_IMAGES} images per export.`);
-        break;
+      setError(null);
+      const accepted: ImageAsset[] = [];
+      for (const file of Array.from(files)) {
+        if (!isImageFile(file)) {
+          setError("Only image files are supported.");
+          continue;
+        }
+        if (images.length + accepted.length >= MAX_IMAGES) {
+          setError(`Limit ${MAX_IMAGES} images per export.`);
+          break;
+        }
+        try {
+          const asset = await buildAsset(file);
+          accepted.push(asset);
+        } catch (assetError) {
+          console.error(assetError);
+          setError("Failed to load one of the images.");
+        }
       }
-      try {
-        const asset = await buildAsset(file);
-        accepted.push(asset);
-      } catch (assetError) {
-        console.error(assetError);
-        setError("Failed to load one of the images.");
+      if (accepted.length > 0) {
+        setImages((current) => [...current, ...accepted]);
+        setStatus(`${accepted.length} image${accepted.length === 1 ? "" : "s"} ready.`);
       }
-    }
-    if (accepted.length > 0) {
-      setImages((current) => [...current, ...accepted]);
-      setStatus(`${accepted.length} image${accepted.length === 1 ? "" : "s"} ready.`);
-    }
-  }, [images.length]);
+    },
+    [images.length],
+  );
 
-  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    void handleFiles(event.target.files);
-    event.target.value = "";
-  }, [handleFiles]);
+  const handleInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      void handleFiles(event.target.files);
+      event.target.value = "";
+    },
+    [handleFiles],
+  );
 
-  const handleDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    void handleFiles(event.dataTransfer?.files ?? null);
-  }, [handleFiles]);
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setDragging(false);
+      void handleFiles(event.dataTransfer?.files ?? null);
+    },
+    [handleFiles],
+  );
 
   const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     if (event.dataTransfer?.types.includes("Files")) {
@@ -316,9 +323,10 @@ const ImagesToPdfPage = () => {
       const doc = await PDFDocument.create();
       for (const asset of images) {
         const page = doc.addPage([orientedDimensions.width, orientedDimensions.height]);
-        const embedded = asset.embedType === "image/png"
-          ? await doc.embedPng(asset.bytes)
-          : await doc.embedJpg(asset.bytes);
+        const embedded =
+          asset.embedType === "image/png"
+            ? await doc.embedPng(asset.bytes)
+            : await doc.embedJpg(asset.bytes);
         const placement = computeImagePlacement(
           asset.width,
           asset.height,
@@ -405,9 +413,7 @@ const ImagesToPdfPage = () => {
           {status ? (
             <p className="mt-4 text-sm text-emerald-600 dark:text-emerald-300">{status}</p>
           ) : null}
-          {error ? (
-            <p className="mt-4 text-sm text-rose-600 dark:text-rose-300">{error}</p>
-          ) : null}
+          {error ? <p className="mt-4 text-sm text-rose-600 dark:text-rose-300">{error}</p> : null}
         </div>
 
         <div className="rounded-3xl border border-slate-200/70 bg-white/80 p-6 dark:border-white/10 dark:bg-slate-900/60">
@@ -431,8 +437,8 @@ const ImagesToPdfPage = () => {
 
           {emptyState ? (
             <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
-              Need inspiration? Drop PNG, JPG, or WEBP files here. We'll keep them local and render
-              lightweight previews before exporting.
+              Need inspiration? Drop PNG, JPG, or WEBP files here. We&apos;ll keep them local and
+              render lightweight previews before exporting.
             </p>
           ) : (
             <ul className="mt-6 space-y-4" data-image-list="true">
@@ -453,7 +459,8 @@ const ImagesToPdfPage = () => {
                         Page {index + 1}: {image.name}
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {Math.round(image.width)} × {Math.round(image.height)} px · {(image.size / 1024).toFixed(1)} KB
+                        {Math.round(image.width)} × {Math.round(image.height)} px ·{" "}
+                        {(image.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
                   </div>
@@ -496,29 +503,37 @@ const ImagesToPdfPage = () => {
           Layout presets
         </p>
         <div className="mt-4 space-y-3">
-          {PAGE_PRESETS.map((option) => (
-            <label
-              key={option.id}
-              className={clsx(
-                "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
-                presetId === option.id
-                  ? "border-slate-900 bg-slate-900/5 text-slate-900 dark:border-white dark:bg-white/10 dark:text-white"
-                  : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
-              )}
-            >
-              <input
-                type="radio"
-                name="page-preset"
-                className="mt-1"
-                checked={presetId === option.id}
-                onChange={() => setPresetId(option.id)}
-              />
-              <div>
-                <p className="font-semibold">{option.label}</p>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{option.width} × {option.height} pt</p>
-              </div>
-            </label>
-          ))}
+          {PAGE_PRESETS.map((option) => {
+            const inputId = `page-preset-${option.id}`;
+            return (
+              <label
+                key={option.id}
+                className={clsx(
+                  "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
+                  presetId === option.id
+                    ? "border-slate-900 bg-slate-900/5 text-slate-900 dark:border-white dark:bg-white/10 dark:text-white"
+                    : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
+                )}
+                htmlFor={inputId}
+                aria-label={option.label}
+              >
+                <input
+                  type="radio"
+                  name="page-preset"
+                  className="mt-1"
+                  checked={presetId === option.id}
+                  onChange={() => setPresetId(option.id)}
+                  id={inputId}
+                />
+                <div>
+                  <p className="font-semibold">{option.label}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    {option.width} × {option.height} pt
+                  </p>
+                </div>
+              </label>
+            );
+          })}
         </div>
 
         <div className="mt-6 space-y-4">
@@ -550,35 +565,46 @@ const ImagesToPdfPage = () => {
               Fit mode
             </p>
             <div className="mt-3 space-y-2">
-              {FIT_OPTIONS.map((option) => (
-                <label
-                  key={option.id}
-                  className={clsx(
-                    "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
-                    fitMode === option.id
-                      ? "border-emerald-500 bg-emerald-500/5 text-emerald-900 dark:border-emerald-300/70 dark:text-emerald-100"
-                      : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="fit-mode"
-                    className="mt-1"
-                    checked={fitMode === option.id}
-                    onChange={() => setFitMode(option.id)}
-                  />
-                  <div>
-                    <p className="font-semibold">{option.label}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{option.description}</p>
-                  </div>
-                </label>
-              ))}
+              {FIT_OPTIONS.map((option) => {
+                const inputId = `fit-mode-${option.id}`;
+                return (
+                  <label
+                    key={option.id}
+                    className={clsx(
+                      "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
+                      fitMode === option.id
+                        ? "border-emerald-500 bg-emerald-500/5 text-emerald-900 dark:border-emerald-300/70 dark:text-emerald-100"
+                        : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
+                    )}
+                    htmlFor={inputId}
+                    aria-label={option.label}
+                  >
+                    <input
+                      type="radio"
+                      name="fit-mode"
+                      className="mt-1"
+                      checked={fitMode === option.id}
+                      onChange={() => setFitMode(option.id)}
+                      id={inputId}
+                    />
+                    <div>
+                      <p className="font-semibold">{option.label}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {option.description}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
 
         <div className="mt-8 space-y-3 text-sm text-slate-500 dark:text-slate-300">
-          <p>Each image becomes its own page. We'll apply a {DEFAULT_MARGIN / 72}" margin.</p>
+          <p>
+            Each image becomes its own page. We&apos;ll apply a {DEFAULT_MARGIN / 72}
+            &quot; margin.
+          </p>
           <p>Everything stays on-device—no uploads or external servers.</p>
         </div>
 
@@ -588,7 +614,11 @@ const ImagesToPdfPage = () => {
           onClick={() => void handleExport()}
           disabled={images.length === 0 || isGenerating}
         >
-          {isGenerating ? "Creating PDF..." : images.length === 0 ? "Add images" : `Create ${images.length}-page PDF`}
+          {isGenerating
+            ? "Creating PDF..."
+            : images.length === 0
+              ? "Add images"
+              : `Create ${images.length}-page PDF`}
         </button>
       </aside>
     </div>

@@ -24,7 +24,8 @@ const formatTimestamp = (timestamp: number) => {
   }).format(timestamp);
 };
 
-const assetsToNamedFiles = (items: PdfAsset[]) => items.map((asset) => ({ fileName: asset.fileName }));
+const assetsToNamedFiles = (items: PdfAsset[]) =>
+  items.map((asset) => ({ fileName: asset.fileName }));
 
 const MergeToolPage = () => {
   const { assets, isBusy, error, addAsset, removeAsset, reorderAssets, clearError } =

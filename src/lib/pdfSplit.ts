@@ -13,9 +13,7 @@ const cloneToArrayBuffer = (source: Uint8Array): ArrayBuffer => {
 const normalizePages = (pageNumbers: number[], pageCount: number) => {
   const sanitized = Array.from(
     new Set(
-      pageNumbers
-        .map((page) => Math.trunc(page))
-        .filter((page) => page >= 1 && page <= pageCount),
+      pageNumbers.map((page) => Math.trunc(page)).filter((page) => page >= 1 && page <= pageCount),
     ),
   ).sort((a, b) => a - b);
 

@@ -21,9 +21,7 @@ export const sanitizeFileStem = (value: string, fallbackPrefix = "document") => 
 
 export const buildMergedFileName = (items: NamedFile[]) => {
   const firstItem = items[0];
-  const stem = firstItem
-    ? sanitizeFileStem(firstItem.fileName, "merged")
-    : fallbackStem("merged");
+  const stem = firstItem ? sanitizeFileStem(firstItem.fileName, "merged") : fallbackStem("merged");
   return `${stem}-${items.length}files-${timestampToken()}.pdf`;
 };
 

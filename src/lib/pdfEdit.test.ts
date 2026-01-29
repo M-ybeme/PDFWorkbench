@@ -40,10 +40,7 @@ describe("pdfEdit", () => {
     const pages = buildEditablePages(loaded);
     const third = pages[2]!;
     const first = pages[0]!;
-    const edited: typeof pages = [
-      { ...third },
-      { ...first, rotation: 90 },
-    ];
+    const edited: typeof pages = [{ ...third }, { ...first, rotation: 90 }];
 
     const bytes = await applyPageEdits(loaded, edited);
     const parsed = await PDFDocument.load(bytes);

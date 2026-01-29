@@ -17,7 +17,9 @@ describe("SplitToolPage", () => {
     render(<SplitToolPage />);
     expect(screen.getByText(/Split PDFs with precision/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Drop a PDF to unlock thumbnail previews, selection controls, and split presets/i),
+      screen.getByText(
+        /Drop a PDF to unlock thumbnail previews, selection controls, and split presets/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Choose a PDF/i)).toBeInTheDocument();
   });

@@ -39,11 +39,14 @@ test.describe("Images to PDF E2E", () => {
     await uploader.waitFor({ state: "attached" });
     await uploader.setInputFiles(samplePaths);
 
-    const cards = page.locator("[data-image-list=\"true\"] li");
+    const cards = page.locator('[data-image-list="true"] li');
     await expect(cards).toHaveCount(samplePaths.length);
 
     // Reorder images to exercise queue controls.
-    await cards.nth(1).getByRole("button", { name: /move up/i }).click();
+    await cards
+      .nth(1)
+      .getByRole("button", { name: /move up/i })
+      .click();
     await expect(cards.first().getByText(/Page 1: second/i)).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");

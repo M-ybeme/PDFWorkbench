@@ -81,16 +81,25 @@ const LandingPage = () => {
             Phase 0.3.0
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
-            What's live right now?
+            What&rsquo;s live right now?
           </h2>
           <ul className="mt-6 space-y-4 text-sm text-slate-600 dark:text-slate-300">
             <li>✅ PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail</li>
             <li>✅ Merge workspace to stack, reorder, and download multi-file bundles instantly</li>
-            <li>✅ Split workspace with selectable tiles, custom exports, and every-N ZIP bundles</li>
+            <li>
+              ✅ Split workspace with selectable tiles, custom exports, and every-N ZIP bundles
+            </li>
             <li>✅ Page editor with drag-to-reorder, rotate/delete controls, and undo history</li>
-            <li>✅ Images→PDF studio with layout presets, PNG integrity guard, and instant downloads</li>
-            <li>✅ Password prompts, local activity log, and Playwright coverage for merge/editor/images</li>
-            <li>✅ Light/dark theming, responsive shell, and ESLint+Vitest+CI keeping the stack honest</li>
+            <li>
+              ✅ Images→PDF studio with layout presets, PNG integrity guard, and instant downloads
+            </li>
+            <li>
+              ✅ Password prompts, local activity log, and Playwright coverage for
+              merge/editor/images
+            </li>
+            <li>
+              ✅ Light/dark theming, responsive shell, and ESLint+Vitest+CI keeping the stack honest
+            </li>
           </ul>
         </article>
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
