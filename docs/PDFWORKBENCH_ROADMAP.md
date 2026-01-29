@@ -14,6 +14,13 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
+## Status — 2026-01-28
+
+* Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
+* Next focus: kick off 0.2.0 viewer work by integrating `pdfjs-dist`, building the shared file-loader module, and prototyping the viewer layout (sidebar + canvas + controls).
+
+---
+
 ## Version Series Overview
 
 * **0.1.x — Foundations**: Project setup, navigation, core architecture
@@ -33,22 +40,24 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 **Goals:** Establish the technical base and core UI layout.
 
+**Status:** Feature work shipped and deployed to Netlify (Jan 28 2026). GitHub Actions automation remains outstanding.
+
 ### User-Facing
 
-* Landing page with navigation placeholders
-* Dark/light mode toggle
-* Basic app shell and layout
+* [x] Landing page with navigation placeholders
+* [x] Dark/light mode toggle
+* [x] Basic app shell and layout
 
 ### Engineering
 
-* Initialize project: React + TypeScript + Vite
-* Add Tailwind design system
-* Set up routing (React Router)
-* Add Zustand or Context-based global store
-* ESLint + Prettier + strict TS config
-* Add Vitest + React Testing Library
-* GitHub Actions CI (lint + tests)
-* Deploy initial build to Netlify
+* [x] Initialize project: React + TypeScript + Vite
+* [x] Add Tailwind design system
+* [x] Set up routing (React Router)
+* [x] Add Zustand or Context-based global store
+* [x] ESLint + Prettier + strict TS config
+* [x] Add Vitest + React Testing Library
+* [ ] GitHub Actions CI (lint + tests)
+* [x] Deploy initial build to Netlify
 
 ---
 
