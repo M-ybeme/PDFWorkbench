@@ -1,10 +1,12 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
 
 import { toolRoutes } from "../data/toolRoutes";
 import ThemeToggle from "./ThemeToggle";
 import { useUIState } from "../state/uiState";
 import clsx from "clsx";
+
+import logoSrc from "/PDFWorkbenchLogo.png?url";
 
 const AppShell = () => {
   const navOpen = useUIState((state) => state.navOpen);
@@ -20,17 +22,20 @@ const AppShell = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 lg:flex-row lg:py-12">
-        <aside className="rounded-3xl border border-slate-200/60 bg-white/80 p-6 shadow-2xl shadow-slate-200/40 backdrop-blur dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/40 lg:sticky lg:top-8 lg:h-fit lg:w-72">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 lg:flex-row lg:py-12 2xl:max-w-7xl">
+        <aside className="rounded-3xl border border-slate-200/60 bg-white/80 p-6 shadow-2xl shadow-slate-200/40 backdrop-blur dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/40 lg:sticky lg:top-8 lg:h-fit lg:w-72 2xl:w-80">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
-                PDF WORKBENCH
-              </p>
-              <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-                v0.6 Compression
-              </p>
-            </div>
+            <Link to="/" className="flex items-center gap-3 group">
+              <img src={logoSrc} alt="PDF Workbench logo" className="h-10 w-10 rounded-xl" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.25em] text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200 transition-colors">
+                  PDF WORKBENCH
+                </p>
+                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
+                  v0.6 Compression
+                </p>
+              </div>
+            </Link>
             <div className="flex gap-2">
               <ThemeToggle />
               <button

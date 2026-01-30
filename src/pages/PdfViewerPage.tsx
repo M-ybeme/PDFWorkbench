@@ -482,7 +482,7 @@ const PdfViewerPage = () => {
             <dl className="mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300">
               <div className="rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60">
                 <dt className="text-xs uppercase tracking-[0.3em] text-slate-500">File</dt>
-                <dd className="text-base font-semibold text-slate-900 dark:text-white">
+                <dd className="text-base font-semibold text-slate-900 dark:text-white break-all">
                   {pdf.name}
                 </dd>
               </div>

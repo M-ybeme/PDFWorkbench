@@ -458,15 +458,15 @@ const ImagesToPdfPage = () => {
                   key={image.id}
                   className="flex flex-col gap-4 rounded-2xl border border-slate-200/70 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-900/40 sm:flex-row"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-4">
                     <img
                       src={image.dataUrl}
                       alt={image.name}
-                      className="h-20 w-20 rounded-xl object-cover"
+                      className="h-20 w-20 flex-shrink-0 rounded-xl object-cover"
                       loading="lazy"
                     />
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 dark:text-white break-all">
                         Page {index + 1}: {image.name}
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -475,7 +475,7 @@ const ImagesToPdfPage = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+                  <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
                     <button
                       type="button"
                       className="rounded-full border border-slate-300/70 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-900 hover:text-slate-900 disabled:opacity-30 dark:border-white/10 dark:text-slate-300"

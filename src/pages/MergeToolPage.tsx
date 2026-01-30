@@ -230,8 +230,8 @@ const MergeToolPage = () => {
                   className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm dark:border-white/5 dark:bg-slate-900/70"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-semibold text-slate-900 dark:text-white break-all">
                         {asset.fileName}
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-300">
