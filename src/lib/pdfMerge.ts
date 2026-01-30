@@ -1,5 +1,10 @@
 import { PDFDocument } from "pdf-lib";
 
+import {
+  buildDownloadNameFromSources,
+  type ExportResult,
+  type PdfSource,
+} from "./documentPipeline";
 import { PdfLoadError } from "./pdfErrors";
 import type { LoadedPdf } from "./pdfLoader";
 
@@ -26,4 +31,31 @@ export const mergeLoadedPdfs = async (documents: LoadedPdf[]): Promise<Uint8Arra
 export const mergeLoadedPdfsToBlob = async (documents: LoadedPdf[]): Promise<Blob> => {
   const mergedBytes = await mergeLoadedPdfs(documents);
   return new Blob([mergedBytes], { type: "application/pdf" });
+};
+
+type MergeExportOptions = {
+  sources: PdfSource[];
+  startedAt?: number;
+};
+
+export const mergeLoadedPdfsToExportResult = async (
+  documents: LoadedPdf[],
+  options: MergeExportOptions,
+): Promise<ExportResult> => {
+  const startedAt = options.startedAt ?? Date.now();
+  const blob = await mergeLoadedPdfsToBlob(documents);
+  const downloadName = buildDownloadNameFromSources(options.sources, "merge");
+
+  return {
+    blob,
+    size: blob.size,
+    downloadName,
+    durationMs: Math.max(0, Date.now() - startedAt),
+    warnings: undefined,
+    activity: {
+      tool: "merge",
+      operation: `merge-${documents.length}-files`,
+      sourceCount: options.sources.length,
+    },
+  };
 };

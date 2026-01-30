@@ -6,8 +6,8 @@ import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { buildSplitSelectionFileName, buildSplitSliceFileName, buildSplitZipFileName, } from "../lib/fileNames";
 import { buildZipFromEntries, extractPagesFromLoadedPdf, splitPdfByChunkSize, } from "../lib/pdfSplit";
-import { useActivityLog } from "../state/activityLog";
 import { configurePdfWorker } from "../lib/pdfWorker";
+import { logExportResult } from "../state/activityLog";
 const THUMBNAIL_SCALE = 0.22;
 const formatBytes = (size) => {
     if (size === 0)
@@ -37,7 +37,6 @@ const SplitToolPage = () => {
     const [isSelectionDownloading, setSelectionDownloading] = useState(false);
     const [isBundleDownloading, setBundleDownloading] = useState(false);
     const [passwordPrompt, setPasswordPrompt] = useState(null);
-    const addActivityEntry = useActivityLog((state) => state.addEntry);
     useEffect(() => {
         configurePdfWorker();
     }, []);
@@ -211,19 +210,29 @@ const SplitToolPage = () => {
         setSelectionError(null);
         setSelectionSuccess(null);
         setSelectionDownloading(true);
+        const startedAt = Date.now();
         try {
             const selection = Array.from(selectedPages).sort((a, b) => a - b);
             const bytes = await extractPagesFromLoadedPdf(pdf, selection);
             const blob = new Blob([cloneBytesToArrayBuffer(bytes)], { type: "application/pdf" });
             const descriptor = `${selection.length}pages`;
             const fileName = buildSplitSelectionFileName(pdf.name, descriptor);
-            triggerBlobDownload(blob, fileName);
+            const result = {
+                blob,
+                size: blob.size,
+                downloadName: fileName,
+                durationMs: Math.max(0, Date.now() - startedAt),
+                warnings: undefined,
+                activity: {
+                    tool: "split",
+                    operation: `split-selection-${selection.length}-pages`,
+                    sourceCount: 1,
+                    detail: `${pdf.name} · ${selection.length} selected page${selection.length === 1 ? "" : "s"}`,
+                },
+            };
+            triggerBlobDownload(result.blob, result.downloadName);
+            logExportResult(result);
             setSelectionSuccess(`Downloaded ${selection.length} page(s).`);
-            addActivityEntry({
-                type: "split-selection",
-                label: `Exported ${selection.length} selected page${selection.length === 1 ? "" : "s"}`,
-                detail: pdf.name,
-            });
         }
         catch (selectionProblem) {
             console.error(selectionProblem);
@@ -232,7 +241,7 @@ const SplitToolPage = () => {
         finally {
             setSelectionDownloading(false);
         }
-    }, [addActivityEntry, pdf, selectedPages]);
+    }, [pdf, selectedPages]);
     const handlePresetDownload = useCallback(async () => {
         if (!pdf) {
             return;
@@ -240,6 +249,7 @@ const SplitToolPage = () => {
         setBundleError(null);
         setBundleSuccess(null);
         setBundleDownloading(true);
+        const startedAt = Date.now();
         try {
             const chunks = await splitPdfByChunkSize(pdf, splitSize);
             const entries = chunks.map((chunk) => ({
@@ -249,13 +259,22 @@ const SplitToolPage = () => {
             const zipBytes = await buildZipFromEntries(entries);
             const zipBlob = new Blob([zipBytes], { type: "application/zip" });
             const zipName = buildSplitZipFileName(pdf.name);
-            triggerBlobDownload(zipBlob, zipName);
+            const result = {
+                blob: zipBlob,
+                size: zipBlob.size,
+                downloadName: zipName,
+                durationMs: Math.max(0, Date.now() - startedAt),
+                warnings: undefined,
+                activity: {
+                    tool: "split",
+                    operation: `split-preset-${splitSize}-pages`,
+                    sourceCount: 1,
+                    detail: `${pdf.name} · every ${splitSize} page${splitSize === 1 ? "" : "s"}`,
+                },
+            };
+            triggerBlobDownload(result.blob, result.downloadName);
+            logExportResult(result);
             setBundleSuccess(`Exported ${entries.length} slice(s) with ${splitSize}-page preset.`);
-            addActivityEntry({
-                type: "split-preset",
-                label: `Bundled ${entries.length} slice${entries.length === 1 ? "" : "s"}`,
-                detail: `${pdf.name} · every ${splitSize} page${splitSize === 1 ? "" : "s"}`,
-            });
         }
         catch (presetProblem) {
             console.error(presetProblem);
@@ -264,7 +283,7 @@ const SplitToolPage = () => {
         finally {
             setBundleDownloading(false);
         }
-    }, [addActivityEntry, pdf, splitSize]);
+    }, [pdf, splitSize]);
     const handleSplitSizeChange = useCallback((event) => {
         const nextValue = Number(event.target.value);
         if (Number.isNaN(nextValue)) {

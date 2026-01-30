@@ -60,11 +60,12 @@ export const toolRoutes: ToolRoute[] = [
   {
     id: "compression",
     label: "Compression",
-    summary: "Tune presets to shrink large PDFs while protecting text clarity.",
+    summary:
+      "Canvas-based compression that rasterizes pages at reduced resolution with JPEG re-encoding for smaller files.",
     version: "0.6.x",
-    eta: "Compression · Next",
+    eta: "Compression · Live",
     path: "compression",
-    status: "upcoming",
+    status: "live",
   },
   {
     id: "signatures",

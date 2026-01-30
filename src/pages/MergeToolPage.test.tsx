@@ -12,13 +12,13 @@ vi.mock("../lib/pdfLoader", () => ({
 }));
 
 vi.mock("../lib/pdfMerge", () => ({
-  mergeLoadedPdfsToBlob: vi.fn(),
+  mergeLoadedPdfsToExportResult: vi.fn(),
 }));
 
 import MergeToolPage from "./MergeToolPage";
 import { usePdfAssets } from "../state/pdfAssets";
 import { useActivityLog } from "../state/activityLog";
-import { mergeLoadedPdfsToBlob } from "../lib/pdfMerge";
+import { mergeLoadedPdfsToExportResult } from "../lib/pdfMerge";
 import type { LoadedPdf } from "../lib/pdfLoader";
 
 describe("MergeToolPage", () => {
@@ -36,8 +36,14 @@ describe("MergeToolPage", () => {
   it("merges stacked PDFs when requested", async () => {
     const user = userEvent.setup();
     const mockBlob = new Blob([new Uint8Array([1, 2, 3])], { type: "application/pdf" });
-    const mergeSpy = vi.mocked(mergeLoadedPdfsToBlob);
-    mergeSpy.mockResolvedValue(mockBlob);
+    const mergeSpy = vi.mocked(mergeLoadedPdfsToExportResult);
+    mergeSpy.mockResolvedValue({
+      blob: mockBlob,
+      size: mockBlob.size,
+      downloadName: "alpha.merge.20260129.pdf",
+      durationMs: 25,
+      activity: { tool: "merge", operation: "merge-2-files", sourceCount: 2 },
+    });
 
     const originalCreateObjectURL = URL.createObjectURL;
     const originalRevokeObjectURL = URL.revokeObjectURL;
@@ -76,16 +82,28 @@ describe("MergeToolPage", () => {
       doc: { destroy: vi.fn() } as unknown as LoadedPdf["doc"],
     });
 
+    const createSource = (name: string) => ({
+      id: `source-${name}`,
+      origin: "upload" as const,
+      name,
+      size: 1024,
+      lastModified: Date.now(),
+      bytes: new Uint8Array([1, 2, 3]),
+      password: null,
+    });
+
     const assets = [
       {
         id: "asset-a",
         fileName: "alpha.pdf",
+        source: createSource("alpha.pdf"),
         loaded: createLoadedPdf("alpha.pdf"),
         addedAt: Date.now(),
       },
       {
         id: "asset-b",
         fileName: "beta.pdf",
+        source: createSource("beta.pdf"),
         loaded: createLoadedPdf("beta.pdf"),
         addedAt: Date.now(),
       },
@@ -107,7 +125,13 @@ describe("MergeToolPage", () => {
       expect(screen.getByText(/Merged stack downloaded/i)).toBeInTheDocument();
     });
 
-    expect(mergeSpy).toHaveBeenCalledWith(assets.map((asset) => asset.loaded));
+    expect(mergeSpy).toHaveBeenCalledWith(
+      assets.map((asset) => asset.loaded),
+      {
+        sources: assets.map((asset) => asset.source),
+        startedAt: expect.any(Number),
+      },
+    );
     expect(createObjectURLMock).toHaveBeenCalledWith(mockBlob);
     expect(revokeObjectURLMock).toHaveBeenCalled();
     expect(anchorClickMock).toHaveBeenCalled();

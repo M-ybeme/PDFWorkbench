@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { configurePdfWorker } from "../lib/pdfWorker";
-import { loadPdfFromFile } from "../lib/pdfLoader";
+import { loadPdfFromSource } from "../lib/pdfLoader";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
+import { createPdfSourceFromFile } from "../lib/documentPipeline";
 const isPdf = (file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 const reorder = (list, fromIndex, toIndex) => {
     const result = [...list];
@@ -32,13 +33,15 @@ export const usePdfAssets = create((set, get) => ({
             }
             configurePdfWorker();
             set({ isBusy: true, error: null });
-            const loaded = await loadPdfFromFile(file, options);
+            const source = await createPdfSourceFromFile(file, "upload");
+            const loaded = await loadPdfFromSource(source, options);
             set((state) => ({
                 assets: [
                     ...state.assets,
                     {
                         id: loaded.id,
-                        fileName: file.name,
+                        fileName: source.name,
+                        source,
                         loaded,
                         addedAt: Date.now(),
                     },

@@ -4,9 +4,8 @@ import clsx from "clsx";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { buildMergedFileName } from "../lib/fileNames";
-import { mergeLoadedPdfsToBlob } from "../lib/pdfMerge";
-import { useActivityLog } from "../state/activityLog";
+import { mergeLoadedPdfsToExportResult } from "../lib/pdfMerge";
+import { logExportResult } from "../state/activityLog";
 import { usePdfAssets } from "../state/pdfAssets";
 const formatBytes = (size) => {
     if (size === 0)
@@ -21,10 +20,8 @@ const formatTimestamp = (timestamp) => {
         timeStyle: "short",
     }).format(timestamp);
 };
-const assetsToNamedFiles = (items) => items.map((asset) => ({ fileName: asset.fileName }));
 const MergeToolPage = () => {
     const { assets, isBusy, error, addAsset, removeAsset, reorderAssets, clearError } = usePdfAssets();
-    const logActivity = useActivityLog((state) => state.addEntry);
     const [isDragActive, setDragActive] = useState(false);
     const [isMerging, setIsMerging] = useState(false);
     const [mergeError, setMergeError] = useState(null);
@@ -79,15 +76,13 @@ const MergeToolPage = () => {
         dismissMergeAlerts();
         setIsMerging(true);
         try {
-            const blob = await mergeLoadedPdfsToBlob(assets.map((asset) => asset.loaded));
-            const fileName = buildMergedFileName(assetsToNamedFiles(assets));
-            triggerBlobDownload(blob, fileName);
-            setMergeSuccess(`Merged stack downloaded as ${fileName}`);
-            logActivity({
-                type: "merge",
-                label: `Merged ${assets.length} file${assets.length === 1 ? "" : "s"}`,
-                detail: fileName,
+            const result = await mergeLoadedPdfsToExportResult(assets.map((asset) => asset.loaded), {
+                sources: assets.map((asset) => asset.source),
+                startedAt: Date.now(),
             });
+            triggerBlobDownload(result.blob, result.downloadName);
+            setMergeSuccess(`Merged stack downloaded as ${result.downloadName}`);
+            logExportResult(result);
         }
         catch (mergeProblem) {
             console.error("Failed to merge PDFs", mergeProblem);
@@ -96,7 +91,7 @@ const MergeToolPage = () => {
         finally {
             setIsMerging(false);
         }
-    }, [assets, dismissMergeAlerts, logActivity]);
+    }, [assets, dismissMergeAlerts]);
     const totals = useMemo(() => {
         const totalPages = assets.reduce((sum, asset) => sum + asset.loaded.pageCount, 0);
         const totalBytes = assets.reduce((sum, asset) => sum + asset.loaded.size, 0);

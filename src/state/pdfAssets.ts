@@ -1,12 +1,14 @@
 import { create } from "zustand";
 
 import { configurePdfWorker } from "../lib/pdfWorker";
-import { loadPdfFromFile, type LoadPdfOptions, type LoadedPdf } from "../lib/pdfLoader";
+import { loadPdfFromSource, type LoadPdfOptions, type LoadedPdf } from "../lib/pdfLoader";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
+import { createPdfSourceFromFile, type PdfSource } from "../lib/documentPipeline";
 
 export type PdfAsset = {
   id: string;
   fileName: string;
+  source: PdfSource;
   loaded: LoadedPdf;
   addedAt: number;
 };
@@ -58,13 +60,15 @@ export const usePdfAssets = create<PdfAssetState>((set, get) => ({
 
       configurePdfWorker();
       set({ isBusy: true, error: null });
-      const loaded = await loadPdfFromFile(file, options);
+      const source = await createPdfSourceFromFile(file, "upload");
+      const loaded = await loadPdfFromSource(source, options);
       set((state) => ({
         assets: [
           ...state.assets,
           {
             id: loaded.id,
-            fileName: file.name,
+            fileName: source.name,
+            source,
             loaded,
             addedAt: Date.now(),
           },

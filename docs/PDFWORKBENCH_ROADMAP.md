@@ -24,7 +24,9 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - Password-protected PDFs now prompt for unlock codes directly inside the viewer and merge flow.
 - Page editor (0.4.0) is live with reorder/rotate/delete controls, undo stack, and covered by unit + Playwright tests.
 - Images→PDF (0.5.0) now supports layout presets, PNG integrity checks with automatic re-encoding fallbacks, and a stable E2E download flow.
-- Next steps: begin 0.6.0 compression tooling and related automation.
+- Shared `PdfSource` → `ExportResult` pipeline contract and `logExportResult` helper now back merge, split, page editor, and images workspaces for consistent naming, metadata, and activity logging.
+- Compression (0.6.0) workspace now has working canvas-based downscale + JPEG re-encode pipeline with three presets (High/Balanced/Smallest), actual before/after size reporting, unit tests, and Playwright E2E coverage.
+- Next steps: begin 0.7.0 Signatures work (visual signature placement with draw/type/upload modes).
 
 ---
 
@@ -40,6 +42,19 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - **0.8.x — UX & Accessibility**: Fit & finish, keyboard controls
 - **0.9.x — Hardening**: Tests, error handling, docs
 - **1.0.0 — Stable Release**: Complete, polished suite
+
+---
+
+## Platform Guardrails & Messaging (cross-cutting)
+
+**Goals:** Respond to privacy, scale, and clarity risks before v1.0 ships.
+
+- Prominent privacy statement (“files never leave your device”) plus FAQ coverage explaining browser-only processing and pdf.js sandbox limits.
+- File-size and page-count caps per tool with warnings, progress indicators, and cancel affordances for long jobs.
+- Shared document pipeline contract (`LoadedPdf`, `PdfSource`, `ExportResult`) so every workspace reuses ingest/export/error handling.
+- Consistent download naming (original base name + operation + timestamp) and predictable ZIP structures.
+- Error taxonomy with user-friendly copy for password-required, corrupted, unsupported encryption, oversized, and general render failures.
+- Accessibility baseline for keyboard/focus management across drag/drop zones, thumbnail grids, and modal workflows.
 
 ---
 
@@ -89,8 +104,8 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### Tests
 
-- Component tests for viewer interactions
-- Basic E2E: load sample PDF and navigate
+- [x] Component tests for viewer interactions
+- [x] Basic E2E: load sample PDF and navigate
 
 ---
 
@@ -172,23 +187,40 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 **Goals:** Reduce PDF size (image-heavy first).
 
+**Progress checkpoint — Feb 2026**
+
+- [x] Shared export contract + download naming strategy is live across merge, split, page editor, and images flows, giving compression a ready-made ingest/export backbone.
+- [x] `logExportResult` now supports detail overrides, so compression summaries can reuse the same activity log UI to communicate preset, savings, and warnings.
+- [x] Merge/split/image/page editor suites cover the shared logging helper, ensuring compression work can focus on new processing instead of foundational plumbing.
+- [x] Compression workspace UI complete with three quality presets (High/Balanced/Smallest), size projections, and guardrail messaging.
+- [x] Canvas-based downscale + JPEG re-encode pipeline implemented; actual before/after sizes displayed after compression.
+- [x] Unit tests for compression helpers (preset logic, dimension scaling, size estimation).
+- [x] Playwright E2E coverage for compression flow (preset selection, download, valid output verification).
+- [ ] Remaining scope: optional serverless optimizer investigation (post-v1.0).
+
 ### User-Facing
 
-- Load PDF in “Compress” tool
-- Quality presets (High / Balanced / Smallest)
-- Display size before/after
-- “Compress & Download”
+- [x] Load PDF in "Compress" workspace with clear messaging that pages are rasterized (text/vector content converted to images).
+- [x] Quality presets (High / Balanced / Smallest) with copy outlining visual vs. size trade-offs.
+- [x] Display original size, projected size, and percentage delta before running; show actual results afterward.
+- [x] "Compress & Download" primary action with real-time progress feedback.
+- [ ] Future: "Try serverless optimizer" callout for heavier jobs (post-v1.0).
 
 ### Engineering
 
-- Downscale images within PDF
-- Optional JPEG re-encoding
-- Maintain text/vector content
+- [x] Canvas-based page rendering via pdf.js at reduced resolution per preset thresholds.
+- [x] JPEG re-encoding with preset-driven quality floors (0.85/0.75/0.65).
+- [x] Rebuild PDF with pdf-lib using compressed JPEG images.
+- [x] Guardrail warnings for large files (>50MB) and high page counts (>200 pages).
+- [ ] Future: Selective image-only compression that preserves text/vector streams verbatim (would require deeper PDF parsing).
+- [ ] Future: Serverless/edge pipeline for archival-grade compression.
 
 ### Tests
 
-- Ensure valid PDF output
-- E2E: compress sample and confirm smaller size
+- [x] Unit tests for compression helpers (preset logic, dimension scaling, size estimation).
+- [x] E2E: compress sample PDF and verify valid output with correct page count.
+- [x] E2E: verify large page count warning triggers for PDFs with >200 pages.
+- [x] Component tests for compression page initial state and UI elements.
 
 ---
 
@@ -198,6 +230,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### User-Facing
 
+- Scope is visual signature stamping only (not cryptographic signing) with explicit UI copy to set expectations.
 - Signature modal:
   - Draw (canvas)
   - Type (script fonts)
@@ -216,6 +249,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 - Unit tests for coordinate mapping
 - E2E: place signature and export
+- Copy test ensuring UI never implies digital/certified signature capabilities
 
 ---
 

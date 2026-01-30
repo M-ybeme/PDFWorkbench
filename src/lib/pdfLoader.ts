@@ -1,6 +1,7 @@
 import { PDFDateString, PasswordResponses, getDocument, version as pdfjsVersion } from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 
+import { createPdfSourceFromFile, type PdfSource } from "./documentPipeline";
 import { PdfLoadError, type PdfErrorCode } from "./pdfErrors";
 
 export type PdfDocumentMetadata = {
@@ -20,6 +21,7 @@ export type PdfDocumentMetadata = {
 };
 
 export type LoadedPdf = {
+  sourceId?: string;
   id: string;
   name: string;
   size: number;
@@ -97,15 +99,15 @@ const mapPdfJsError = (reason: unknown): PdfLoadError => {
   return new PdfLoadError("unknown", reason instanceof Error ? reason.message : undefined);
 };
 
-export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Promise<LoadedPdf> => {
-  const retainedData = new Uint8Array(await file.arrayBuffer());
-  let password: string | undefined;
+export const loadPdfFromSource = async (
+  source: PdfSource,
+  options?: LoadPdfOptions,
+): Promise<LoadedPdf> => {
+  let password = source.password ?? undefined;
 
-  // Re-attempt loading if the user provides a password after an initial failure.
   for (;;) {
     let doc: PDFDocumentProxy | null = null;
-    // pdf.js transfers the provided buffer into its worker, which neuters the source array.
-    // Clone the retained bytes before each attempt so we can safely reuse the originals later.
+    const retainedData = source.bytes;
     const pdfJsBytes = retainedData.slice();
 
     try {
@@ -149,11 +151,14 @@ export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Pro
         pageSize,
       };
 
+      source.password = password ?? null;
+
       return {
+        sourceId: source.id,
         id: createId(),
-        name: file.name,
+        name: source.name,
         size: retainedData.byteLength,
-        lastModified: file.lastModified,
+        lastModified: source.lastModified ?? Date.now(),
         pageCount: doc.numPages,
         pdfVersion: pdfjsVersion,
         data: retainedData,
@@ -186,4 +191,9 @@ export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Pro
       throw mapped;
     }
   }
+};
+
+export const loadPdfFromFile = async (file: File, options?: LoadPdfOptions): Promise<LoadedPdf> => {
+  const source = await createPdfSourceFromFile(file);
+  return loadPdfFromSource(source, options);
 };

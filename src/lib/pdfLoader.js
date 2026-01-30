@@ -1,4 +1,5 @@
 import { PDFDateString, PasswordResponses, getDocument, version as pdfjsVersion } from "pdfjs-dist";
+import { createPdfSourceFromFile } from "./documentPipeline";
 import { PdfLoadError } from "./pdfErrors";
 const createId = () => {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -45,14 +46,11 @@ const mapPdfJsError = (reason) => {
     }
     return new PdfLoadError("unknown", reason instanceof Error ? reason.message : undefined);
 };
-export const loadPdfFromFile = async (file, options) => {
-    const retainedData = new Uint8Array(await file.arrayBuffer());
-    let password;
-    // Re-attempt loading if the user provides a password after an initial failure.
+export const loadPdfFromSource = async (source, options) => {
+    let password = source.password ?? undefined;
     for (;;) {
         let doc = null;
-        // pdf.js transfers the provided buffer into its worker, which neuters the source array.
-        // Clone the retained bytes before each attempt so we can safely reuse the originals later.
+        const retainedData = source.bytes;
         const pdfJsBytes = retainedData.slice();
         try {
             const loadingTask = getDocument({ data: pdfJsBytes, password });
@@ -94,11 +92,13 @@ export const loadPdfFromFile = async (file, options) => {
                 permissions,
                 pageSize,
             };
+            source.password = password ?? null;
             return {
+                sourceId: source.id,
                 id: createId(),
-                name: file.name,
+                name: source.name,
                 size: retainedData.byteLength,
-                lastModified: file.lastModified,
+                lastModified: source.lastModified ?? Date.now(),
                 pageCount: doc.numPages,
                 pdfVersion: pdfjsVersion,
                 data: retainedData,
@@ -129,4 +129,8 @@ export const loadPdfFromFile = async (file, options) => {
             throw mapped;
         }
     }
+};
+export const loadPdfFromFile = async (file, options) => {
+    const source = await createPdfSourceFromFile(file);
+    return loadPdfFromSource(source, options);
 };

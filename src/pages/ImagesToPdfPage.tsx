@@ -6,7 +6,8 @@ import { triggerBlobDownload } from "../lib/downloads";
 import { buildImagesPdfFileName } from "../lib/fileNames";
 import { computeImagePlacement, type FitMode } from "../lib/imageLayout";
 import { hasPngSignature, isPngBytesComplete } from "../lib/pngIntegrity";
-import { useActivityLog } from "../state/activityLog";
+import { type ExportResult } from "../lib/documentPipeline";
+import { logExportResult } from "../state/activityLog";
 
 const PAGE_PRESETS = [
   { id: "letter", label: "Letter · 8.5 × 11 in", width: 612, height: 792 },
@@ -204,7 +205,6 @@ const ImagesToPdfPage = () => {
   const [fitMode, setFitMode] = useState<FitMode>("fit");
   const [isGenerating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const addActivityEntry = useActivityLog((state) => state.addEntry);
 
   const preset = getPresetById(presetId);
   const orientedDimensions = useMemo(() => {
@@ -319,6 +319,7 @@ const ImagesToPdfPage = () => {
     setGenerating(true);
     setError(null);
     setStatus(null);
+    const startedAt = Date.now();
     try {
       const doc = await PDFDocument.create();
       for (const asset of images) {
@@ -343,20 +344,30 @@ const ImagesToPdfPage = () => {
       const bytes = await doc.save();
       const blob = new Blob([cloneBytesToArrayBuffer(bytes)], { type: "application/pdf" });
       const fileName = buildImagesPdfFileName(images[0]?.name ?? null, images.length);
-      triggerBlobDownload(blob, fileName);
+      const result: ExportResult = {
+        blob,
+        size: blob.size,
+        downloadName: fileName,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        warnings: undefined,
+        activity: {
+          tool: "images",
+          operation: `images-to-pdf-${images.length}-pages`,
+          sourceCount: images.length,
+          detail: `${preset.label} · ${fitMode.toUpperCase()}`,
+        },
+      };
+
+      triggerBlobDownload(result.blob, result.downloadName);
+      logExportResult(result);
       setStatus(`Created PDF with ${images.length} image${images.length === 1 ? "" : "s"}.`);
-      addActivityEntry({
-        type: "images-to-pdf",
-        label: `Built ${images.length} page PDF`,
-        detail: `${preset.label} · ${fitMode.toUpperCase()}`,
-      });
     } catch (exportError) {
       console.error("handleExport error", exportError);
       setError(exportError instanceof Error ? exportError.message : "Failed to export PDF.");
     } finally {
       setGenerating(false);
     }
-  }, [images, isGenerating, orientedDimensions, fitMode, addActivityEntry, preset.label]);
+  }, [images, isGenerating, orientedDimensions, fitMode, preset.label]);
 
   const emptyState = images.length === 0;
 

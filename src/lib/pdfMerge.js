@@ -1,4 +1,5 @@
 import { PDFDocument } from "pdf-lib";
+import { buildDownloadNameFromSources, } from "./documentPipeline";
 import { PdfLoadError } from "./pdfErrors";
 export const mergeLoadedPdfs = async (documents) => {
     if (documents.length < 2) {
@@ -20,4 +21,21 @@ export const mergeLoadedPdfs = async (documents) => {
 export const mergeLoadedPdfsToBlob = async (documents) => {
     const mergedBytes = await mergeLoadedPdfs(documents);
     return new Blob([mergedBytes], { type: "application/pdf" });
+};
+export const mergeLoadedPdfsToExportResult = async (documents, options) => {
+    const startedAt = options.startedAt ?? Date.now();
+    const blob = await mergeLoadedPdfsToBlob(documents);
+    const downloadName = buildDownloadNameFromSources(options.sources, "merge");
+    return {
+        blob,
+        size: blob.size,
+        downloadName,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        warnings: undefined,
+        activity: {
+            tool: "merge",
+            operation: `merge-${documents.length}-files`,
+            sourceCount: options.sources.length,
+        },
+    };
 };

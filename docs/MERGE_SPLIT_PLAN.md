@@ -9,6 +9,7 @@
 ## Proposed Data Structures
 
 ### `PdfAsset`
+
 Represents an uploaded file (raw `File`, its `LoadedPdf` metadata, and derived blobs for caching).
 
 ```ts
@@ -28,6 +29,7 @@ type PageDescriptor = {
 ```
 
 ### `MergeWorkspace`
+
 Keeps ordering plus output preferences.
 
 ```ts
@@ -40,6 +42,7 @@ type MergeWorkspace = {
 ```
 
 ### `SplitWorkspace`
+
 Focuses on page-level selections per asset.
 
 ```ts

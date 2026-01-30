@@ -12,8 +12,9 @@ const AppShell = () => {
   const [isAnimating, setAnimating] = useState(false);
 
   const handleNavToggle = () => {
+    const currentState = useUIState.getState().navOpen;
     setAnimating(true);
-    setNavOpen(!navOpen);
+    setNavOpen(!currentState);
     setTimeout(() => setAnimating(false), 300);
   };
 
@@ -27,18 +28,20 @@ const AppShell = () => {
                 PDF WORKBENCH
               </p>
               <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-                v0.5 Momentum
+                v0.6 Compression
               </p>
             </div>
             <div className="flex gap-2">
               <ThemeToggle />
               <button
                 type="button"
-                className="inline-flex rounded-full border border-slate-200/70 bg-white p-2 text-slate-600 shadow hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/20 dark:bg-slate-800 dark:text-slate-200"
+                className="inline-flex rounded-full border border-slate-200/70 bg-white p-2 text-slate-600 shadow hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/20 dark:bg-slate-800 dark:text-slate-200 lg:hidden"
                 aria-label="Toggle navigation"
+                aria-expanded={navOpen}
                 onClick={handleNavToggle}
               >
-                <span className="sr-only">Open navigation</span>☰
+                <span className="sr-only">{navOpen ? "Close" : "Open"} navigation</span>
+                {navOpen ? "✕" : "☰"}
               </button>
             </div>
           </div>

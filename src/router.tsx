@@ -12,6 +12,7 @@ const MergeToolPage = lazy(() => import("./pages/MergeToolPage"));
 const SplitToolPage = lazy(() => import("./pages/SplitToolPage"));
 const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
 const ImagesToPdfPage = lazy(() => import("./pages/ImagesToPdfPage"));
+const CompressionToolPage = lazy(() => import("./pages/CompressionToolPage"));
 
 const suspenseFallback = (label: string) => (
   <div className="rounded-3xl border border-dashed border-slate-300/70 bg-white/80 p-10 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
@@ -49,6 +50,12 @@ const imagesElement = (
   </Suspense>
 );
 
+const compressionElement = (
+  <Suspense fallback={suspenseFallback("compression workspace")}>
+    <CompressionToolPage />
+  </Suspense>
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -70,6 +77,8 @@ const router = createBrowserRouter([
               editorElement
             ) : tool.id === "images" ? (
               imagesElement
+            ) : tool.id === "compression" ? (
+              compressionElement
             ) : (
               <ToolPlaceholder tool={tool} />
             ),

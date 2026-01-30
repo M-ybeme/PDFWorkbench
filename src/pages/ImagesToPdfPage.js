@@ -6,7 +6,7 @@ import { triggerBlobDownload } from "../lib/downloads";
 import { buildImagesPdfFileName } from "../lib/fileNames";
 import { computeImagePlacement } from "../lib/imageLayout";
 import { hasPngSignature, isPngBytesComplete } from "../lib/pngIntegrity";
-import { useActivityLog } from "../state/activityLog";
+import { logExportResult } from "../state/activityLog";
 const PAGE_PRESETS = [
     { id: "letter", label: "Letter · 8.5 × 11 in", width: 612, height: 792 },
     { id: "a4", label: "A4 · 210 × 297 mm", width: 595, height: 842 },
@@ -156,7 +156,6 @@ const ImagesToPdfPage = () => {
     const [fitMode, setFitMode] = useState("fit");
     const [isGenerating, setGenerating] = useState(false);
     const fileInputRef = useRef(null);
-    const addActivityEntry = useActivityLog((state) => state.addEntry);
     const preset = getPresetById(presetId);
     const orientedDimensions = useMemo(() => {
         if (orientation === "portrait") {
@@ -252,6 +251,7 @@ const ImagesToPdfPage = () => {
         setGenerating(true);
         setError(null);
         setStatus(null);
+        const startedAt = Date.now();
         try {
             const doc = await PDFDocument.create();
             for (const asset of images) {
@@ -270,13 +270,22 @@ const ImagesToPdfPage = () => {
             const bytes = await doc.save();
             const blob = new Blob([cloneBytesToArrayBuffer(bytes)], { type: "application/pdf" });
             const fileName = buildImagesPdfFileName(images[0]?.name ?? null, images.length);
-            triggerBlobDownload(blob, fileName);
+            const result = {
+                blob,
+                size: blob.size,
+                downloadName: fileName,
+                durationMs: Math.max(0, Date.now() - startedAt),
+                warnings: undefined,
+                activity: {
+                    tool: "images",
+                    operation: `images-to-pdf-${images.length}-pages`,
+                    sourceCount: images.length,
+                    detail: `${preset.label} · ${fitMode.toUpperCase()}`,
+                },
+            };
+            triggerBlobDownload(result.blob, result.downloadName);
+            logExportResult(result);
             setStatus(`Created PDF with ${images.length} image${images.length === 1 ? "" : "s"}.`);
-            addActivityEntry({
-                type: "images-to-pdf",
-                label: `Built ${images.length} page PDF`,
-                detail: `${preset.label} · ${fitMode.toUpperCase()}`,
-            });
         }
         catch (exportError) {
             console.error("handleExport error", exportError);
@@ -285,7 +294,7 @@ const ImagesToPdfPage = () => {
         finally {
             setGenerating(false);
         }
-    }, [images, isGenerating, orientedDimensions, fitMode, addActivityEntry, preset.label]);
+    }, [images, isGenerating, orientedDimensions, fitMode, preset.label]);
     const emptyState = images.length === 0;
     return (_jsxs("div", { className: "mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:flex-row lg:px-10", children: [_jsxs("div", { className: "flex-1 space-y-6", children: [_jsxs("div", { className: clsx("rounded-3xl border-2 border-dashed p-10 text-center transition", isDragging
                             ? "border-emerald-400 bg-emerald-50/70 dark:border-emerald-300 dark:bg-emerald-500/10"

@@ -21,7 +21,8 @@ import {
   buildEditablePages,
   type EditablePage,
 } from "../lib/pdfEdit";
-import { useActivityLog } from "../state/activityLog";
+import { type ExportResult } from "../lib/documentPipeline";
+import { logExportResult } from "../state/activityLog";
 
 const THUMBNAIL_SCALE = 0.22;
 const HISTORY_LIMIT = 20;
@@ -79,7 +80,6 @@ const PageEditorPage = () => {
     resolve: (value: string | null) => void;
   } | null>(null);
 
-  const addActivityEntry = useActivityLog((state) => state.addEntry);
   const dragSourceId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -360,28 +360,39 @@ const PageEditorPage = () => {
     setDownloadError(null);
     setDownloadSuccess(null);
     setDownloading(true);
+    const startedAt = Date.now();
 
     try {
       const bytes = await applyPageEdits(pdf, pages);
       const blob = new Blob([cloneBytesToArrayBuffer(bytes)], { type: "application/pdf" });
       const fileName = buildEditedPdfFileName(pdf.name);
-      triggerBlobDownload(blob, fileName);
       const kept = pages.filter((page) => !page.isDeleted).length;
       const deleted = pages.length - kept;
       const rotated = pages.filter((page) => ((page.rotation % 360) + 360) % 360 !== 0).length;
+      const result: ExportResult = {
+        blob,
+        size: blob.size,
+        downloadName: fileName,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        warnings: undefined,
+        activity: {
+          tool: "editor",
+          operation: `page-edit-${kept}-pages`,
+          sourceCount: 1,
+          detail: `${pdf.name} · ${deleted} deleted · ${rotated} rotated`,
+        },
+      };
+
+      triggerBlobDownload(result.blob, result.downloadName);
+      logExportResult(result);
       setDownloadSuccess(`Exported ${kept} page${kept === 1 ? "" : "s"}.`);
-      addActivityEntry({
-        type: "page-edit",
-        label: `Edited ${kept} page${kept === 1 ? "" : "s"}`,
-        detail: `${pdf.name} · ${deleted} deleted · ${rotated} rotated`,
-      });
     } catch (downloadProblem) {
       console.error(downloadProblem);
       setDownloadError(getFriendlyPdfError(downloadProblem));
     } finally {
       setDownloading(false);
     }
-  }, [addActivityEntry, pages, pdf]);
+  }, [pages, pdf]);
 
   const totalPages = pages.length;
   const activePages = useMemo(() => pages.filter((page) => !page.isDeleted), [pages]);
