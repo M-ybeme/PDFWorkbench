@@ -462,7 +462,9 @@ const PdfViewerPage = () => {
           Thumbnails
         </p>
         <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-          {thumbnailStatus === "rendering" ? "Rendering" : `${thumbnails.length}/${pdf?.pageCount ?? 0}`}
+          {thumbnailStatus === "rendering"
+            ? "Rendering"
+            : `${thumbnails.length}/${pdf?.pageCount ?? 0}`}
         </span>
       </div>
       <div className="mt-3 max-h-[420px] overflow-y-auto pr-2">
@@ -497,7 +499,9 @@ const PdfViewerPage = () => {
           </ol>
         ) : (
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {thumbnailStatus === "rendering" ? "Rendering previews…" : "Load a PDF to see previews."}
+            {thumbnailStatus === "rendering"
+              ? "Rendering previews…"
+              : "Load a PDF to see previews."}
           </p>
         )}
       </div>

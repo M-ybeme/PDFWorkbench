@@ -47,7 +47,7 @@ test.describe("Images to PDF E2E", () => {
       .nth(1)
       .getByRole("button", { name: /move up/i })
       .click();
-    await expect(cards.first().getByText(/Page 1: second/i)).toBeVisible();
+    await expect(cards.first()).toContainText(/Page 1: second/i);
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: /Create 2-page PDF/i }).click();
