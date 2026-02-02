@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ChangeEvent, DragEvent } from "react";
 import clsx from "clsx";
 
@@ -118,6 +119,7 @@ const PdfViewerPage = () => {
     reason: PdfPasswordReason;
     resolve: (value: string | null) => void;
   } | null>(null);
+  const [isFullscreen, setFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pageCacheRef = useRef<Map<string, CachedRender>>(new Map());
 
@@ -231,7 +233,7 @@ const PdfViewerPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [pdf, currentPage, zoom]);
+  }, [pdf, currentPage, zoom, isFullscreen]);
 
   useEffect(() => {
     if (pdf && currentPage > pdf.pageCount) {
@@ -395,6 +397,31 @@ const PdfViewerPage = () => {
     setCurrentPage(pageNumber);
   }, []);
 
+  useEffect(() => {
+    if (!isFullscreen || typeof document === "undefined") {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFullscreen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(() => {
+    setFullscreen((prev) => !prev);
+  }, []);
+
   const pageDetail = useMemo(() => {
     if (!pdf) return null;
     return {
@@ -423,6 +450,157 @@ const PdfViewerPage = () => {
 
   const canGoPrev = pdf ? currentPage > 1 : false;
   const canGoNext = pdf ? currentPage < pdf.pageCount : false;
+
+  const canvasElement = (
+    <canvas ref={canvasRef} className="mx-auto shadow-2xl shadow-slate-900/10" />
+  );
+
+  const ThumbnailSidebar = () => (
+    <aside className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-slate-900/70 lg:w-60">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
+          Thumbnails
+        </p>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+          {thumbnailStatus === "rendering" ? "Rendering" : `${thumbnails.length}/${pdf?.pageCount ?? 0}`}
+        </span>
+      </div>
+      <div className="mt-3 max-h-[420px] overflow-y-auto pr-2">
+        {thumbnails.length > 0 ? (
+          <ol className="space-y-3">
+            {thumbnails.map((thumb) => (
+              <li key={thumb.pageNumber}>
+                <button
+                  type="button"
+                  onClick={() => handleThumbnailSelect(thumb.pageNumber)}
+                  className={clsx(
+                    "group w-full rounded-2xl border px-2 pb-2 pt-2 transition",
+                    thumb.pageNumber === currentPage
+                      ? "border-emerald-400 bg-emerald-50/60 text-emerald-700 dark:border-emerald-300/60 dark:bg-emerald-900/30 dark:text-emerald-100"
+                      : "border-slate-200 bg-white/70 text-slate-600 hover:border-slate-400 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300",
+                  )}
+                >
+                  <div className="overflow-hidden rounded-xl border border-slate-200/60 bg-slate-100 dark:border-white/10 dark:bg-slate-900/40">
+                    <img
+                      src={thumb.url}
+                      alt={`Page ${thumb.pageNumber} thumbnail`}
+                      loading="lazy"
+                      className="mx-auto block"
+                    />
+                  </div>
+                  <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.3em]">
+                    Page {thumb.pageNumber}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {thumbnailStatus === "rendering" ? "Rendering previews…" : "Load a PDF to see previews."}
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+
+  const renderToolbar = (mode: "inline" | "fullscreen") => {
+    const fullscreenLabel = mode === "fullscreen" ? "Exit Fullscreen" : "Enter Fullscreen";
+    const actionButtonBase =
+      "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] transition";
+
+    return (
+      <div
+        className={clsx(
+          "flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold",
+          mode === "fullscreen"
+            ? "bg-slate-900 text-white shadow-lg"
+            : "bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200",
+        )}
+      >
+        <div className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+          Page {currentPage} / {pdf?.pageCount ?? 0}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={!canGoPrev}
+          >
+            ← Prev
+          </button>
+          <input
+            type="range"
+            min={1}
+            max={pdf?.pageCount ?? 1}
+            value={currentPage}
+            onChange={(event) => setCurrentPage(Number(event.target.value))}
+            className="accent-emerald-400"
+          />
+          <button
+            type="button"
+            className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
+            onClick={() => setCurrentPage((prev) => Math.min(pdf?.pageCount ?? 1, prev + 1))}
+            disabled={!canGoNext}
+          >
+            Next →
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
+            onClick={() =>
+              setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2))))
+            }
+            disabled={zoom <= MIN_ZOOM}
+          >
+            −
+          </button>
+          <span className="w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
+            onClick={() =>
+              setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2))))
+            }
+            disabled={zoom >= MAX_ZOOM}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className={clsx(
+              actionButtonBase,
+              "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white",
+            )}
+            onClick={() => setZoom(1)}
+            title="Reset zoom to 100%"
+            disabled={zoom === 1}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className={clsx(
+              actionButtonBase,
+              mode === "fullscreen"
+                ? "border-white/50 bg-white text-slate-900 hover:bg-slate-200"
+                : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/70 dark:bg-white dark:text-slate-900",
+            )}
+            onClick={toggleFullscreen}
+            title={fullscreenLabel}
+            aria-pressed={mode === "fullscreen"}
+          >
+            {fullscreenLabel}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -548,117 +726,19 @@ const PdfViewerPage = () => {
         <div className="flex flex-col rounded-3xl border border-slate-200/70 bg-slate-900/5 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5">
           {pdf ? (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200">
-                <div>
-                  Page {currentPage} / {pdf.pageCount}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={!canGoPrev}
-                  >
-                    ← Prev
-                  </button>
-                  <input
-                    type="range"
-                    min={1}
-                    max={pdf.pageCount}
-                    value={currentPage}
-                    onChange={(event) => setCurrentPage(Number(event.target.value))}
-                  />
-                  <button
-                    type="button"
-                    className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
-                    onClick={() => setCurrentPage((prev) => Math.min(pdf.pageCount, prev + 1))}
-                    disabled={!canGoNext}
-                  >
-                    Next →
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
-                    onClick={() =>
-                      setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2))))
-                    }
-                    disabled={zoom <= MIN_ZOOM}
-                  >
-                    −
-                  </button>
-                  <span className="w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500">
-                    {Math.round(zoom * 100)}%
-                  </span>
-                  <button
-                    type="button"
-                    className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
-                    onClick={() =>
-                      setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2))))
-                    }
-                    disabled={zoom >= MAX_ZOOM}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-1 flex-col gap-4 lg:flex-row">
-                <aside className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-slate-900/70 lg:w-60">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-                      Thumbnails
-                    </p>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                      {thumbnailStatus === "rendering"
-                        ? "Rendering"
-                        : `${thumbnails.length}/${pdf.pageCount}`}
-                    </span>
+              {renderToolbar("inline")}
+              {!isFullscreen ? (
+                <div className="mt-4 flex flex-1 flex-col gap-4 lg:flex-row">
+                  <ThumbnailSidebar />
+                  <div className="flex-1 overflow-auto rounded-2xl border border-dashed border-slate-300/70 bg-white/90 p-4 shadow-inner dark:border-white/10 dark:bg-slate-950/40">
+                    {canvasElement}
                   </div>
-                  <div className="mt-3 max-h-[420px] overflow-y-auto pr-2">
-                    {thumbnails.length > 0 ? (
-                      <ol className="space-y-3">
-                        {thumbnails.map((thumb) => (
-                          <li key={thumb.pageNumber}>
-                            <button
-                              type="button"
-                              onClick={() => handleThumbnailSelect(thumb.pageNumber)}
-                              className={clsx(
-                                "group w-full rounded-2xl border px-2 pb-2 pt-2 transition",
-                                thumb.pageNumber === currentPage
-                                  ? "border-emerald-400 bg-emerald-50/60 text-emerald-700 dark:border-emerald-300/60 dark:bg-emerald-900/30 dark:text-emerald-100"
-                                  : "border-slate-200 bg-white/70 text-slate-600 hover:border-slate-400 dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-300",
-                              )}
-                            >
-                              <div className="overflow-hidden rounded-xl border border-slate-200/60 bg-slate-100 dark:border-white/10 dark:bg-slate-900/40">
-                                <img
-                                  src={thumb.url}
-                                  alt={`Page ${thumb.pageNumber} thumbnail`}
-                                  loading="lazy"
-                                  className="mx-auto block"
-                                />
-                              </div>
-                              <span className="mt-2 block text-xs font-semibold uppercase tracking-[0.3em]">
-                                Page {thumb.pageNumber}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {thumbnailStatus === "rendering"
-                          ? "Rendering previews…"
-                          : "Load a PDF to see previews."}
-                      </p>
-                    )}
-                  </div>
-                </aside>
-
-                <div className="flex-1 overflow-auto rounded-2xl border border-dashed border-slate-300/70 bg-white/90 p-4 shadow-inner dark:border-white/10 dark:bg-slate-950/40">
-                  <canvas ref={canvasRef} className="mx-auto shadow-2xl shadow-slate-900/10" />
                 </div>
-              </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
+                  Viewer is in fullscreen. Use the Exit button or press Esc to return here.
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500 dark:border-white/20 dark:bg-slate-900/40 dark:text-slate-300">
@@ -681,6 +761,22 @@ const PdfViewerPage = () => {
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
       />
+      {isFullscreen && pdf && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-50 bg-slate-950/95 p-4 text-white">
+              <div className="mx-auto flex h-full max-w-6xl flex-col gap-4">
+                {renderToolbar("fullscreen")}
+                <div className="flex flex-1 flex-col gap-4 lg:flex-row">
+                  <ThumbnailSidebar />
+                  <div className="flex-1 overflow-auto rounded-2xl border border-white/20 bg-slate-900/50 p-4 shadow-inner">
+                    {canvasElement}
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };
