@@ -5,16 +5,22 @@ import { ThemePreference, applyThemeClass, initializeTheme, persistTheme } from 
 type UIState = {
   theme: ThemePreference;
   navOpen: boolean;
+  sidebarCollapsed: boolean;
   setTheme: (theme: ThemePreference) => void;
   toggleTheme: () => void;
   setNavOpen: (value: boolean) => void;
+  setSidebarCollapsed: (value: boolean) => void;
 };
 
 const defaultTheme = initializeTheme();
 
+const defaultSidebarCollapsed =
+  typeof window !== "undefined" && localStorage.getItem("pdfwb-sidebar-collapsed") === "true";
+
 export const useUIState = create<UIState>((set) => ({
   theme: defaultTheme,
   navOpen: false,
+  sidebarCollapsed: defaultSidebarCollapsed,
   setTheme: (theme) => {
     applyThemeClass(theme);
     persistTheme(theme);
@@ -28,4 +34,8 @@ export const useUIState = create<UIState>((set) => ({
       return { theme: next };
     }),
   setNavOpen: (value) => set({ navOpen: value }),
+  setSidebarCollapsed: (value) => {
+    localStorage.setItem("pdfwb-sidebar-collapsed", String(value));
+    set({ sidebarCollapsed: value });
+  },
 }));

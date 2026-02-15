@@ -13,6 +13,7 @@ const SplitToolPage = lazy(() => import("./pages/SplitToolPage"));
 const PageEditorPage = lazy(() => import("./pages/PageEditorPage"));
 const ImagesToPdfPage = lazy(() => import("./pages/ImagesToPdfPage"));
 const CompressionToolPage = lazy(() => import("./pages/CompressionToolPage"));
+const SignaturesToolPage = lazy(() => import("./pages/SignaturesToolPage"));
 
 const suspenseFallback = (label: string) => (
   <div className="rounded-3xl border border-dashed border-slate-300/70 bg-white/80 p-10 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
@@ -56,6 +57,12 @@ const compressionElement = (
   </Suspense>
 );
 
+const signaturesElement = (
+  <Suspense fallback={suspenseFallback("signatures workspace")}>
+    <SignaturesToolPage />
+  </Suspense>
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -79,6 +86,8 @@ const router = createBrowserRouter([
               imagesElement
             ) : tool.id === "compression" ? (
               compressionElement
+            ) : tool.id === "signatures" ? (
+              signaturesElement
             ) : (
               <ToolPlaceholder tool={tool} />
             ),

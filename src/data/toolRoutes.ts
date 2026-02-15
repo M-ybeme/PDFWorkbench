@@ -70,10 +70,10 @@ export const toolRoutes: ToolRoute[] = [
   {
     id: "signatures",
     label: "Signatures",
-    summary: "Draw, type, and place signatures with precise coordinate mapping.",
+    summary: "Draw, type, upload, then drag precise visual signatures onto any page.",
     version: "0.7.x",
-    eta: "Signatures · Later",
+    eta: "Signatures · Beta",
     path: "signatures",
-    status: "upcoming",
+    status: "live",
   },
 ];

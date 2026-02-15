@@ -27,7 +27,7 @@ See `docs/PDFWORKBENCH_ROADMAP.md` for the full development plan through v1.0.
 - ESLint + Prettier for linting/formatting consistency
 - GitHub Actions CI + Netlify deployment
 
-## Current Tools (v0.6.0)
+## Current Tools (v0.7.0)
 
 - **PDF Viewer** – Drag/drop loader with password prompts, zoom controls, thumbnail rail, metadata browser, and cached canvas renderer.
 - **Merge Workspace** – Stack multiple PDFs, reorder them, and download a merged artifact with consistent naming.
@@ -35,6 +35,7 @@ See `docs/PDFWORKBENCH_ROADMAP.md` for the full development plan through v1.0.
 - **Page Editor** – Drag-to-reorder, rotate (±90°), delete pages with undo history, then export the edited PDF.
 - **Images → PDF** – Convert image sets to multi-page PDFs with layout presets, automatic PNG integrity repair, and fit/fill/center modes.
 - **Compression** – Reduce PDF file size with three quality presets (High/Balanced/Smallest) using canvas-based downscaling and JPEG re-encoding.
+- **Signatures** – Build a local signature library (draw, type, upload), drag/resize placements on any page, and stamp visual signatures directly into exports without leaving the browser.
 - **Activity Log** – Persists recent exports locally and surfaces them on the landing page for quick reference.
 
 ## Privacy
@@ -43,4 +44,4 @@ All processing happens entirely in your browser using pdf.js and pdf-lib. No fil
 
 ## Next Steps
 
-v0.7.0 will add visual signature placement: draw, type, or upload signatures and position them on any page before exporting.
+v0.8.0 will tighten overall UX and accessibility: unify layouts across workspaces, add keyboard shortcuts, and audit focus/ARIA coverage.

@@ -14,7 +14,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
-## Status — 2026-01-29
+## Status — 2026-02-13
 
 - Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
 - 0.2.0 viewer now ships drag/drop ingest, pdf.js rendering, cached page draws, richer metadata, and a scrollable thumbnail rail.
@@ -26,7 +26,8 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - Images→PDF (0.5.0) now supports layout presets, PNG integrity checks with automatic re-encoding fallbacks, and a stable E2E download flow.
 - Shared `PdfSource` → `ExportResult` pipeline contract and `logExportResult` helper now back merge, split, page editor, and images workspaces for consistent naming, metadata, and activity logging.
 - Compression (0.6.0) workspace now has working canvas-based downscale + JPEG re-encode pipeline with three presets (High/Balanced/Smallest), actual before/after size reporting, unit tests, and Playwright E2E coverage.
-- Next steps: begin 0.7.0 Signatures work (visual signature placement with draw/type/upload modes).
+- Signatures (0.7.0) workspace now ships draw/type/upload signature creation, text/symbol fill tools, pen/highlighter freehand drawing, drag/resize placement, undo stack (Ctrl+Z), session persistence across refreshes, and canvas-to-PNG stroke export. Covered by unit tests (10 cases) and Playwright E2E (2 scenarios).
+- Next steps: begin 0.8.0 UX & Accessibility work (unified layout, keyboard shortcuts, ARIA roles).
 
 ---
 
@@ -224,32 +225,40 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
-## 0.7.0 — Signatures
+## 0.7.0 — Signatures & Fill Tools
 
-**Goals:** Add signatures visually and embed into PDF.
+**Goals:** Add visual signatures and lightweight PDF filling/annotation tools so users can complete forms, drop stickers, and add inline notes before exporting.
 
 ### User-Facing
 
-- Scope is visual signature stamping only (not cryptographic signing) with explicit UI copy to set expectations.
+- [x] Scope is visual signature stamping only (not cryptographic signing) with explicit UI copy to set expectations.
 - Signature modal:
-  - Draw (canvas)
-  - Type (script fonts)
-  - Upload transparent PNG
+  - [x] Draw (canvas)
+  - [x] Type (script fonts)
+  - [x] Upload transparent PNG
 
-- Drag/resize signature placement
-- Save signatures in local storage
+- [x] Drag/resize signature placement
+- [x] Save signatures in local storage
+- [x] Fill mode with inline text boxes for typing answers anywhere on the page
+- [x] Sticker/checkmark palette for quickly marking boxes or initials
+- [x] Basic pen/highlighter tool for sketching on the PDF
 
 ### Engineering
 
-- Store signature image(s)
-- Map viewer coordinates → PDF coordinates
-- Embed signature image in chosen location
+- [x] Store signature image(s)
+- [x] Map viewer coordinates → PDF coordinates
+- [x] Embed signature image in chosen location
+- [x] Extend placement math to support text/sticker/pen primitives with sizing + color controls
+- [x] Update stamping pipeline to draw text, stickers, and pen strokes directly into the exported PDF using pdf-lib fonts/paths
+- [x] Persist fill elements with undo/redo support so form edits survive refreshes
 
 ### Tests
 
-- Unit tests for coordinate mapping
-- E2E: place signature and export
-- Copy test ensuring UI never implies digital/certified signature capabilities
+- [x] Unit tests for coordinate mapping
+- [x] E2E: place signature and export
+- [x] Copy test ensuring UI never implies digital/certified signature capabilities
+- [x] Unit + integration coverage for fill/sticker/pen placement math
+- [x] E2E: complete a sample form with text/stickers and export the filled PDF
 
 ---
 

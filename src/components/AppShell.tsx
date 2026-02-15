@@ -11,6 +11,8 @@ import logoSrc from "/PDFWorkbenchLogo.png?url";
 const AppShell = () => {
   const navOpen = useUIState((state) => state.navOpen);
   const setNavOpen = useUIState((state) => state.setNavOpen);
+  const sidebarCollapsed = useUIState((state) => state.sidebarCollapsed);
+  const setSidebarCollapsed = useUIState((state) => state.setSidebarCollapsed);
   const [isAnimating, setAnimating] = useState(false);
 
   const handleNavToggle = () => {
@@ -22,8 +24,32 @@ const AppShell = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 lg:flex-row lg:py-12 2xl:max-w-7xl">
-        <aside className="rounded-3xl border border-slate-200/60 bg-white/80 p-6 shadow-2xl shadow-slate-200/40 backdrop-blur dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/40 lg:sticky lg:top-8 lg:h-fit lg:w-72 2xl:w-80">
+      <div
+        className={clsx(
+          "mx-auto flex flex-col gap-8 px-4 py-8 lg:flex-row lg:py-12",
+          sidebarCollapsed ? "max-w-7xl" : "max-w-6xl 2xl:max-w-7xl",
+        )}
+      >
+        {sidebarCollapsed ? (
+          <button
+            type="button"
+            className="fixed left-4 top-4 z-40 hidden items-center gap-2 rounded-2xl border border-slate-200/60 bg-white/90 px-3 py-2 shadow-lg backdrop-blur transition hover:bg-white dark:border-white/10 dark:bg-slate-900/90 dark:hover:bg-slate-800 lg:inline-flex"
+            onClick={() => setSidebarCollapsed(false)}
+            aria-label="Expand navigation"
+          >
+            <img src={logoSrc} alt="PDF Workbench logo" className="h-7 w-7 rounded-lg" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-300">
+              Menu
+            </span>
+          </button>
+        ) : null}
+
+        <aside
+          className={clsx(
+            "rounded-3xl border border-slate-200/60 bg-white/80 p-6 shadow-2xl shadow-slate-200/40 backdrop-blur transition-all duration-300 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/40 lg:sticky lg:top-8 lg:h-fit",
+            sidebarCollapsed ? "lg:hidden" : "lg:w-72 2xl:w-80",
+          )}
+        >
           <div className="flex items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-3 group">
               <img src={logoSrc} alt="PDF Workbench logo" className="h-10 w-10 rounded-xl" />
@@ -32,12 +58,20 @@ const AppShell = () => {
                   PDF WORKBENCH
                 </p>
                 <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-                  v0.6 Compression
+                  v0.7 Signatures
                 </p>
               </div>
             </Link>
             <div className="flex gap-2">
               <ThemeToggle />
+              <button
+                type="button"
+                className="hidden rounded-full border border-slate-200/70 bg-white p-2 text-slate-600 shadow hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/20 dark:bg-slate-800 dark:text-slate-200 lg:inline-flex"
+                aria-label="Collapse navigation"
+                onClick={() => setSidebarCollapsed(true)}
+              >
+                <span className="sr-only">Collapse navigation</span>✕
+              </button>
               <button
                 type="button"
                 className="inline-flex rounded-full border border-slate-200/70 bg-white p-2 text-slate-600 shadow hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/20 dark:bg-slate-800 dark:text-slate-200 lg:hidden"

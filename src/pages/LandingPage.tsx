@@ -41,7 +41,7 @@ const LandingPage = () => {
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          Phase 0.6.0
+          Phase 0.7.0
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
           Live
         </p>
@@ -50,19 +50,19 @@ const LandingPage = () => {
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
           PDF Workbench is a complete client-side PDF toolkit. Load files, merge stacks, split by
-          selection or preset, reorder/rotate/delete pages, convert images to PDF, and now compress
-          image-heavy documents with quality presets—all without uploading anything to a server.
+          selection or preset, reorder/rotate/delete pages, convert images to PDF, compress
+          downloads, and now stamp visual signatures—entirely offline.
         </p>
         <p className="mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Phase 0.7.0 will add visual signature placement: draw, type, or upload signatures and
-          position them precisely on any page before exporting.
+          Signed documents? Phase 0.7.0 is here: draw, type, or upload signatures, drag/resize them
+          onto any page, and export without ever leaving the browser.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            to="/compression"
+            to="/signatures"
             className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
           >
-            Try Compression →
+            Try Signatures →
           </Link>
           <Link
             to="/viewer"
@@ -96,7 +96,7 @@ const LandingPage = () => {
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Phase 0.6.0
+            Phase 0.7.0
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
             What&rsquo;s live right now?
@@ -114,6 +114,10 @@ const LandingPage = () => {
             <li>
               ✅ Compression with three quality presets (High/Balanced/Smallest) and real-time size
               reporting
+            </li>
+            <li>
+              ✅ Signatures workspace with draw/type/upload modes, draggable placements, and local
+              stamp history
             </li>
             <li>
               ✅ Password prompts, activity log, and unit + E2E test coverage across all tools
@@ -150,8 +154,8 @@ const LandingPage = () => {
               ))
             ) : (
               <p className="rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                Signatures is the final planned tool. Once 0.7.0 ships, we&rsquo;ll shift focus to
-                UX polish, accessibility, and documentation for the 1.0 release.
+                0.8.0 shifts to UX & accessibility polish: unified layouts, keyboard shortcuts, and
+                a11y audits ahead of the 1.0 hardening pass.
               </p>
             )}
           </div>
