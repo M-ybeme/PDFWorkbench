@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import clsx from "clsx";
 
 import PasswordPromptModal from "../components/PasswordPromptModal";
@@ -18,6 +18,8 @@ import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { logExportResult } from "../state/activityLog";
 import { type ExportResult } from "../lib/documentPipeline";
+import { formatBytes } from "../lib/format";
+import { useDragDrop } from "../hooks/useDragDrop";
 
 const THUMBNAIL_SCALE = 0.22;
 
@@ -26,13 +28,6 @@ type ThumbnailStatus = "idle" | "rendering" | "ready";
 type Thumbnail = {
   pageNumber: number;
   url: string;
-};
-
-const formatBytes = (size: number) => {
-  if (size === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  return `${(size / 1024 ** power).toFixed(power === 0 ? 0 : 1)} ${units[power]}`;
 };
 
 const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
@@ -45,7 +40,6 @@ const SplitToolPage = () => {
   const [pdf, setPdf] = useState<LoadedPdf | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [isDragActive, setDragActive] = useState(false);
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [thumbnailStatus, setThumbnailStatus] = useState<ThumbnailStatus>("idle");
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
@@ -198,35 +192,17 @@ const SplitToolPage = () => {
     [pdf],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      const nextFile = files?.[0];
-      void loadFile(nextFile);
-      event.target.value = "";
+  const handleFilesSelected = useCallback(
+    (files: FileList) => {
+      void loadFile(files[0]);
     },
     [loadFile],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragActive(false);
-      const nextFile = event.dataTransfer.files?.[0];
-      void loadFile(nextFile);
-    },
-    [loadFile],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(false);
-  }, []);
+  const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+    accept: "application/pdf",
+    onFiles: handleFilesSelected,
+  });
 
   const togglePageSelection = useCallback((pageNumber: number) => {
     setSelectionSuccess(null);
@@ -373,9 +349,7 @@ const SplitToolPage = () => {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        {...dropZoneProps}
         className={clsx(
           "rounded-[32px] border-2 border-dashed p-10 transition-colors",
           isDragActive
@@ -399,13 +373,7 @@ const SplitToolPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input
-              id="split-upload"
-              type="file"
-              accept="application/pdf"
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="split-upload" {...inputProps} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>

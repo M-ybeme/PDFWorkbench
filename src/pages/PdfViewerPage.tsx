@@ -1,26 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { ChangeEvent, DragEvent } from "react";
 import clsx from "clsx";
 
 import PasswordPromptModal from "../components/PasswordPromptModal";
+import SearchBar from "../components/SearchBar";
+import { useDragDrop } from "../hooks/useDragDrop";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { usePdfTextSearch } from "../hooks/usePdfTextSearch";
+import { formatBytes, formatTimestamp } from "../lib/format";
+import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { loadPdfFromFile, type LoadedPdf, type PdfPasswordReason } from "../lib/pdfLoader";
-import { getFriendlyPdfError } from "../lib/pdfErrors";
-
-const formatBytes = (size: number) => {
-  if (size === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  return `${(size / 1024 ** power).toFixed(power === 0 ? 0 : 1)} ${units[power]}`;
-};
-
-const formatDate = (timestamp: number) => {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
-};
 
 const isPdf = (file: File) => {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -111,7 +102,6 @@ const PdfViewerPage = () => {
   const [pdf, setPdf] = useState<LoadedPdf | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [isDragActive, setDragActive] = useState(false);
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [thumbnailStatus, setThumbnailStatus] = useState<ThumbnailStatus>("idle");
   const [passwordPrompt, setPasswordPrompt] = useState<{
@@ -120,6 +110,61 @@ const PdfViewerPage = () => {
     resolve: (value: string | null) => void;
   } | null>(null);
   const [isFullscreen, setFullscreen] = useState(false);
+  const [isSearchOpen, setSearchOpen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(fullscreenRef, isFullscreen);
+
+  const navigateToPage = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const search = usePdfTextSearch(pdf, currentPage, navigateToPage);
+
+  const hasPdf = !!pdf;
+  const pageCount = pdf?.pageCount ?? 1;
+  const viewerShortcuts = useMemo(
+    () => [
+      {
+        key: "ArrowLeft",
+        handler: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
+        enabled: hasPdf,
+      },
+      {
+        key: "ArrowRight",
+        handler: () => setCurrentPage((prev) => Math.min(pageCount, prev + 1)),
+        enabled: hasPdf,
+      },
+      {
+        key: "+",
+        handler: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))),
+        enabled: hasPdf,
+      },
+      {
+        key: "=",
+        handler: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))),
+        enabled: hasPdf,
+      },
+      {
+        key: "-",
+        handler: () => setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2)))),
+        enabled: hasPdf,
+      },
+      {
+        key: "0",
+        handler: () => setZoom(1),
+        enabled: hasPdf,
+      },
+      {
+        key: "f",
+        ctrl: true,
+        handler: () => setSearchOpen(true),
+        enabled: hasPdf,
+      },
+    ],
+    [hasPdf, pageCount],
+  );
+  useKeyboardShortcuts(viewerShortcuts);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pageCacheRef = useRef<Map<string, CachedRender>>(new Map());
 
@@ -364,34 +409,17 @@ const PdfViewerPage = () => {
     setPasswordPrompt(null);
   }, [passwordPrompt]);
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      void loadFile(file);
-      event.target.value = "";
+  const handleFilesSelected = useCallback(
+    (files: FileList) => {
+      void loadFile(files[0]);
     },
     [loadFile],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragActive(false);
-      const file = event.dataTransfer.files?.[0];
-      void loadFile(file);
-    },
-    [loadFile],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(false);
-  }, []);
+  const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+    accept: "application/pdf",
+    onFiles: handleFilesSelected,
+  });
 
   const handleThumbnailSelect = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -426,7 +454,7 @@ const PdfViewerPage = () => {
     if (!pdf) return null;
     return {
       size: formatBytes(pdf.size),
-      updatedAt: formatDate(pdf.lastModified),
+      updatedAt: formatTimestamp(pdf.lastModified),
       creationDate: pdf.metadata.creationDate,
       modificationDate: pdf.metadata.modificationDate,
       title: pdf.metadata.title,
@@ -514,95 +542,122 @@ const PdfViewerPage = () => {
       "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] transition";
 
     return (
-      <div
-        className={clsx(
-          "flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold",
-          mode === "fullscreen"
-            ? "bg-slate-900 text-white shadow-lg"
-            : "bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200",
-        )}
-      >
-        <div className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-          Page {currentPage} / {pdf?.pageCount ?? 0}
+      <>
+        <div
+          className={clsx(
+            "flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold",
+            mode === "fullscreen"
+              ? "bg-slate-900 text-white shadow-lg"
+              : "bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200",
+          )}
+        >
+          <div className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+            Page {currentPage} / {pdf?.pageCount ?? 0}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={!canGoPrev}
+            >
+              ← Prev
+            </button>
+            <input
+              type="range"
+              min={1}
+              max={pdf?.pageCount ?? 1}
+              value={currentPage}
+              onChange={(event) => setCurrentPage(Number(event.target.value))}
+              className="accent-emerald-400"
+            />
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
+              onClick={() => setCurrentPage((prev) => Math.min(pdf?.pageCount ?? 1, prev + 1))}
+              disabled={!canGoNext}
+            >
+              Next →
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
+              onClick={() =>
+                setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2))))
+              }
+              disabled={zoom <= MIN_ZOOM}
+            >
+              −
+            </button>
+            <span className="w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
+              onClick={() =>
+                setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2))))
+              }
+              disabled={zoom >= MAX_ZOOM}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className={clsx(
+                actionButtonBase,
+                "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white",
+              )}
+              onClick={() => setZoom(1)}
+              title="Reset zoom to 100%"
+              disabled={zoom === 1}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className={clsx(
+                actionButtonBase,
+                "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white",
+              )}
+              onClick={() => setSearchOpen((prev) => !prev)}
+              title="Find in document (Ctrl+F)"
+            >
+              Find
+            </button>
+            <button
+              type="button"
+              className={clsx(
+                actionButtonBase,
+                mode === "fullscreen"
+                  ? "border-white/50 bg-white text-slate-900 hover:bg-slate-200"
+                  : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/70 dark:bg-white dark:text-slate-900",
+              )}
+              onClick={toggleFullscreen}
+              title={fullscreenLabel}
+              aria-pressed={mode === "fullscreen"}
+            >
+              {fullscreenLabel}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={!canGoPrev}
-          >
-            ← Prev
-          </button>
-          <input
-            type="range"
-            min={1}
-            max={pdf?.pageCount ?? 1}
-            value={currentPage}
-            onChange={(event) => setCurrentPage(Number(event.target.value))}
-            className="accent-emerald-400"
-          />
-          <button
-            type="button"
-            className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20"
-            onClick={() => setCurrentPage((prev) => Math.min(pdf?.pageCount ?? 1, prev + 1))}
-            disabled={!canGoNext}
-          >
-            Next →
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
-            onClick={() =>
-              setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2))))
-            }
-            disabled={zoom <= MIN_ZOOM}
-          >
-            −
-          </button>
-          <span className="w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            className="rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20"
-            onClick={() =>
-              setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2))))
-            }
-            disabled={zoom >= MAX_ZOOM}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className={clsx(
-              actionButtonBase,
-              "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white",
-            )}
-            onClick={() => setZoom(1)}
-            title="Reset zoom to 100%"
-            disabled={zoom === 1}
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            className={clsx(
-              actionButtonBase,
-              mode === "fullscreen"
-                ? "border-white/50 bg-white text-slate-900 hover:bg-slate-200"
-                : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/70 dark:bg-white dark:text-slate-900",
-            )}
-            onClick={toggleFullscreen}
-            title={fullscreenLabel}
-            aria-pressed={mode === "fullscreen"}
-          >
-            {fullscreenLabel}
-          </button>
-        </div>
-      </div>
+        {isSearchOpen ? (
+          <div className="mt-2">
+            <SearchBar
+              query={search.query}
+              onQueryChange={search.setQuery}
+              currentMatch={search.currentMatchIndex}
+              totalMatches={search.totalMatches}
+              onNext={search.goToNext}
+              onPrev={search.goToPrev}
+              onClose={() => setSearchOpen(false)}
+              isSearching={search.isSearching}
+            />
+          </div>
+        ) : null}
+      </>
     );
   };
 
@@ -630,17 +685,9 @@ const PdfViewerPage = () => {
                 ? "border-emerald-400 bg-emerald-50/40 text-emerald-600"
                 : "border-slate-300/80 bg-slate-50/40 text-slate-500 dark:border-white/15 dark:bg-slate-800/40 dark:text-slate-300",
             )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            {...dropZoneProps}
           >
-            <input
-              type="file"
-              accept="application/pdf"
-              className="sr-only"
-              id="viewer-upload"
-              onChange={handleInputChange}
-            />
+            <input id="viewer-upload" {...inputProps} />
             <label htmlFor="viewer-upload" className="flex flex-col items-center gap-1">
               <span className="text-sm font-semibold tracking-wide text-slate-700 dark:text-slate-200">
                 Bring your PDF
@@ -767,7 +814,13 @@ const PdfViewerPage = () => {
       />
       {isFullscreen && pdf && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-50 bg-slate-950/95 p-4 text-white">
+            <div
+              ref={fullscreenRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Fullscreen PDF viewer"
+              className="fixed inset-0 z-50 bg-slate-950/95 p-4 text-white"
+            >
               <div className="mx-auto flex h-full max-w-6xl flex-col gap-4">
                 {renderToolbar("fullscreen")}
                 <div className="flex flex-1 flex-col gap-4 lg:flex-row">

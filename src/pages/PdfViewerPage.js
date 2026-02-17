@@ -3,22 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import PasswordPromptModal from "../components/PasswordPromptModal";
+import SearchBar from "../components/SearchBar";
+import { useDragDrop } from "../hooks/useDragDrop";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { usePdfTextSearch } from "../hooks/usePdfTextSearch";
+import { formatBytes, formatTimestamp } from "../lib/format";
+import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { loadPdfFromFile } from "../lib/pdfLoader";
-import { getFriendlyPdfError } from "../lib/pdfErrors";
-const formatBytes = (size) => {
-    if (size === 0)
-        return "0 B";
-    const units = ["B", "KB", "MB", "GB"];
-    const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-    return `${(size / 1024 ** power).toFixed(power === 0 ? 0 : 1)} ${units[power]}`;
-};
-const formatDate = (timestamp) => {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-    }).format(timestamp);
-};
 const isPdf = (file) => {
     return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 };
@@ -78,11 +71,58 @@ const PdfViewerPage = () => {
     const [pdf, setPdf] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [zoom, setZoom] = useState(1);
-    const [isDragActive, setDragActive] = useState(false);
     const [thumbnails, setThumbnails] = useState([]);
     const [thumbnailStatus, setThumbnailStatus] = useState("idle");
     const [passwordPrompt, setPasswordPrompt] = useState(null);
     const [isFullscreen, setFullscreen] = useState(false);
+    const [isSearchOpen, setSearchOpen] = useState(false);
+    const fullscreenRef = useRef(null);
+    useFocusTrap(fullscreenRef, isFullscreen);
+    const navigateToPage = useCallback((page) => {
+        setCurrentPage(page);
+    }, []);
+    const search = usePdfTextSearch(pdf, currentPage, navigateToPage);
+    const hasPdf = !!pdf;
+    const pageCount = pdf?.pageCount ?? 1;
+    const viewerShortcuts = useMemo(() => [
+        {
+            key: "ArrowLeft",
+            handler: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
+            enabled: hasPdf,
+        },
+        {
+            key: "ArrowRight",
+            handler: () => setCurrentPage((prev) => Math.min(pageCount, prev + 1)),
+            enabled: hasPdf,
+        },
+        {
+            key: "+",
+            handler: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))),
+            enabled: hasPdf,
+        },
+        {
+            key: "=",
+            handler: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))),
+            enabled: hasPdf,
+        },
+        {
+            key: "-",
+            handler: () => setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2)))),
+            enabled: hasPdf,
+        },
+        {
+            key: "0",
+            handler: () => setZoom(1),
+            enabled: hasPdf,
+        },
+        {
+            key: "f",
+            ctrl: true,
+            handler: () => setSearchOpen(true),
+            enabled: hasPdf,
+        },
+    ], [hasPdf, pageCount]);
+    useKeyboardShortcuts(viewerShortcuts);
     const canvasRef = useRef(null);
     const pageCacheRef = useRef(new Map());
     useEffect(() => {
@@ -282,25 +322,13 @@ const PdfViewerPage = () => {
         passwordPrompt?.resolve(null);
         setPasswordPrompt(null);
     }, [passwordPrompt]);
-    const handleInputChange = useCallback((event) => {
-        const file = event.target.files?.[0];
-        void loadFile(file);
-        event.target.value = "";
+    const handleFilesSelected = useCallback((files) => {
+        void loadFile(files[0]);
     }, [loadFile]);
-    const handleDrop = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(false);
-        const file = event.dataTransfer.files?.[0];
-        void loadFile(file);
-    }, [loadFile]);
-    const handleDragOver = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(true);
-    }, []);
-    const handleDragLeave = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(false);
-    }, []);
+    const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+        accept: "application/pdf",
+        onFiles: handleFilesSelected,
+    });
     const handleThumbnailSelect = useCallback((pageNumber) => {
         setCurrentPage(pageNumber);
     }, []);
@@ -329,7 +357,7 @@ const PdfViewerPage = () => {
             return null;
         return {
             size: formatBytes(pdf.size),
-            updatedAt: formatDate(pdf.lastModified),
+            updatedAt: formatTimestamp(pdf.lastModified),
             creationDate: pdf.metadata.creationDate,
             modificationDate: pdf.metadata.modificationDate,
             title: pdf.metadata.title,
@@ -363,16 +391,16 @@ const PdfViewerPage = () => {
     const renderToolbar = (mode) => {
         const fullscreenLabel = mode === "fullscreen" ? "Exit Fullscreen" : "Enter Fullscreen";
         const actionButtonBase = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] transition";
-        return (_jsxs("div", { className: clsx("flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold", mode === "fullscreen"
-                ? "bg-slate-900 text-white shadow-lg"
-                : "bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200"), children: [_jsxs("div", { className: "text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400", children: ["Page ", currentPage, " / ", pdf?.pageCount ?? 0] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20", onClick: () => setCurrentPage((prev) => Math.max(1, prev - 1)), disabled: !canGoPrev, children: "\u2190 Prev" }), _jsx("input", { type: "range", min: 1, max: pdf?.pageCount ?? 1, value: currentPage, onChange: (event) => setCurrentPage(Number(event.target.value)), className: "accent-emerald-400" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20", onClick: () => setCurrentPage((prev) => Math.min(pdf?.pageCount ?? 1, prev + 1)), disabled: !canGoNext, children: "Next \u2192" })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20", onClick: () => setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2)))), disabled: zoom <= MIN_ZOOM, children: "\u2212" }), _jsxs("span", { className: "w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400", children: [Math.round(zoom * 100), "%"] }), _jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20", onClick: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))), disabled: zoom >= MAX_ZOOM, children: "+" }), _jsx("button", { type: "button", className: clsx(actionButtonBase, "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white"), onClick: () => setZoom(1), title: "Reset zoom to 100%", disabled: zoom === 1, children: "Reset" }), _jsx("button", { type: "button", className: clsx(actionButtonBase, mode === "fullscreen"
-                                ? "border-white/50 bg-white text-slate-900 hover:bg-slate-200"
-                                : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/70 dark:bg-white dark:text-slate-900"), onClick: toggleFullscreen, title: fullscreenLabel, "aria-pressed": mode === "fullscreen", children: fullscreenLabel })] })] }));
+        return (_jsxs(_Fragment, { children: [_jsxs("div", { className: clsx("flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold", mode === "fullscreen"
+                        ? "bg-slate-900 text-white shadow-lg"
+                        : "bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-200"), children: [_jsxs("div", { className: "text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400", children: ["Page ", currentPage, " / ", pdf?.pageCount ?? 0] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20", onClick: () => setCurrentPage((prev) => Math.max(1, prev - 1)), disabled: !canGoPrev, children: "\u2190 Prev" }), _jsx("input", { type: "range", min: 1, max: pdf?.pageCount ?? 1, value: currentPage, onChange: (event) => setCurrentPage(Number(event.target.value)), className: "accent-emerald-400" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-white/20", onClick: () => setCurrentPage((prev) => Math.min(pdf?.pageCount ?? 1, prev + 1)), disabled: !canGoNext, children: "Next \u2192" })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20", onClick: () => setZoom((prev) => Math.max(MIN_ZOOM, Number((prev - ZOOM_STEP).toFixed(2)))), disabled: zoom <= MIN_ZOOM, children: "\u2212" }), _jsxs("span", { className: "w-20 text-center text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400", children: [Math.round(zoom * 100), "%"] }), _jsx("button", { type: "button", className: "rounded-full border border-slate-300 px-2 py-1 text-lg leading-none disabled:opacity-40 dark:border-white/20", onClick: () => setZoom((prev) => Math.min(MAX_ZOOM, Number((prev + ZOOM_STEP).toFixed(2)))), disabled: zoom >= MAX_ZOOM, children: "+" }), _jsx("button", { type: "button", className: clsx(actionButtonBase, "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white"), onClick: () => setZoom(1), title: "Reset zoom to 100%", disabled: zoom === 1, children: "Reset" }), _jsx("button", { type: "button", className: clsx(actionButtonBase, "border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900 dark:border-white/30 dark:text-white"), onClick: () => setSearchOpen((prev) => !prev), title: "Find in document (Ctrl+F)", children: "Find" }), _jsx("button", { type: "button", className: clsx(actionButtonBase, mode === "fullscreen"
+                                        ? "border-white/50 bg-white text-slate-900 hover:bg-slate-200"
+                                        : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/70 dark:bg-white dark:text-slate-900"), onClick: toggleFullscreen, title: fullscreenLabel, "aria-pressed": mode === "fullscreen", children: fullscreenLabel })] })] }), isSearchOpen ? (_jsx("div", { className: "mt-2", children: _jsx(SearchBar, { query: search.query, onQueryChange: search.setQuery, currentMatch: search.currentMatchIndex, totalMatches: search.totalMatches, onNext: search.goToNext, onPrev: search.goToPrev, onClose: () => setSearchOpen(false), isSearching: search.isSearching }) })) : null] }));
     };
     return (_jsxs("div", { className: "space-y-8", children: [_jsxs("header", { className: "rounded-3xl border border-slate-200/70 bg-white/80 p-8 shadow-lg dark:border-white/10 dark:bg-slate-900/70", children: [_jsx("p", { className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400", children: "0.2.0" }), _jsx("h1", { className: "mt-3 font-display text-4xl font-semibold text-slate-900 dark:text-white", children: "PDF Viewer MVP" }), _jsx("p", { className: "mt-4 max-w-2xl text-base text-slate-600 dark:text-slate-300", children: "Load a PDF entirely in your browser, render crisp pages via pdf.js, and prime the layout for thumbnails, metadata, and downstream editing flows." })] }), _jsxs("section", { className: "grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]", children: [_jsxs("div", { className: "rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-md dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: clsx("flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 text-center transition", isDragActive
                                     ? "border-emerald-400 bg-emerald-50/40 text-emerald-600"
-                                    : "border-slate-300/80 bg-slate-50/40 text-slate-500 dark:border-white/15 dark:bg-slate-800/40 dark:text-slate-300"), onDragOver: handleDragOver, onDragLeave: handleDragLeave, onDrop: handleDrop, children: [_jsx("input", { type: "file", accept: "application/pdf", className: "sr-only", id: "viewer-upload", onChange: handleInputChange }), _jsxs("label", { htmlFor: "viewer-upload", className: "flex flex-col items-center gap-1", children: [_jsx("span", { className: "text-sm font-semibold tracking-wide text-slate-700 dark:text-slate-200", children: "Bring your PDF" }), _jsx("span", { className: "text-xs text-slate-500 dark:text-slate-400", children: "Drop a file or click to browse. Everything stays on-device." })] }), _jsx("p", { className: "text-xs uppercase tracking-[0.3em] text-slate-400", children: status === "loading" ? "Loading…" : "Idle" })] }), error && (_jsx("p", { className: "mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/60 dark:text-rose-200", children: error })), pdf && pageDetail && (_jsxs("dl", { className: "mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300", children: [_jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "File" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white break-all", children: pdf.name })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Pages" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.pageCount })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Size" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pageDetail.size })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Updated" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pageDetail.updatedAt })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "pdf.js" }), _jsxs("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: ["v", pdf.pdfVersion] })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Created" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.created ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Modified" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.modified ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Page Size" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.pageSizeLabel ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Permissions" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.permissions ?? "Not available" })] }), _jsx("button", { type: "button", className: "w-full rounded-2xl border border-slate-300/60 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 dark:border-white/20 dark:text-slate-200", onClick: reset, children: "Clear file" })] }))] }), _jsx("div", { className: "flex flex-col rounded-3xl border border-slate-200/70 bg-slate-900/5 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5", children: pdf ? (_jsxs(_Fragment, { children: [renderToolbar("inline"), !isFullscreen ? (_jsxs("div", { className: "mt-4 flex flex-1 flex-col gap-4 lg:flex-row", children: [_jsx(ThumbnailSidebar, {}), _jsx("div", { className: "flex-1 overflow-auto rounded-2xl border border-dashed border-slate-300/70 bg-white/90 p-4 shadow-inner dark:border-white/10 dark:bg-slate-950/40", children: canvasElement })] })) : (_jsx("div", { className: "mt-4 rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300", children: "Viewer is in fullscreen. Use the Exit button or press Esc to return here." }))] })) : (_jsxs("div", { className: "flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500 dark:border-white/20 dark:bg-slate-900/40 dark:text-slate-300", children: [_jsx("p", { className: "text-sm uppercase tracking-[0.4em]", children: "Awaiting file" }), _jsx("p", { className: "mt-2 font-display text-2xl text-slate-800 dark:text-white", children: "Drop a PDF to preview the first page." }), _jsx("p", { className: "mt-3 max-w-lg text-sm text-slate-500 dark:text-slate-400", children: "Once the viewer solidifies, this pane will host thumbnails, metadata, and editing affordances for the rest of the toolchain." })] })) })] }), _jsx(PasswordPromptModal, { open: Boolean(passwordPrompt), fileName: passwordPrompt?.fileName ?? "", reason: passwordPrompt?.reason ?? "password-required", onSubmit: handlePasswordSubmit, onCancel: handlePasswordCancel }), isFullscreen && pdf && typeof document !== "undefined"
-                ? createPortal(_jsx("div", { className: "fixed inset-0 z-50 bg-slate-950/95 p-4 text-white", children: _jsxs("div", { className: "mx-auto flex h-full max-w-6xl flex-col gap-4", children: [renderToolbar("fullscreen"), _jsxs("div", { className: "flex flex-1 flex-col gap-4 lg:flex-row", children: [_jsx(ThumbnailSidebar, {}), _jsx("div", { className: "flex-1 overflow-auto rounded-2xl border border-white/20 bg-slate-900/50 p-4 shadow-inner", children: canvasElement })] })] }) }), document.body)
+                                    : "border-slate-300/80 bg-slate-50/40 text-slate-500 dark:border-white/15 dark:bg-slate-800/40 dark:text-slate-300"), ...dropZoneProps, children: [_jsx("input", { id: "viewer-upload", ...inputProps }), _jsxs("label", { htmlFor: "viewer-upload", className: "flex flex-col items-center gap-1", children: [_jsx("span", { className: "text-sm font-semibold tracking-wide text-slate-700 dark:text-slate-200", children: "Bring your PDF" }), _jsx("span", { className: "text-xs text-slate-500 dark:text-slate-400", children: "Drop a file or click to browse. Everything stays on-device." })] }), _jsx("p", { className: "text-xs uppercase tracking-[0.3em] text-slate-400", children: status === "loading" ? "Loading…" : "Idle" })] }), error && (_jsx("p", { className: "mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/60 dark:text-rose-200", children: error })), pdf && pageDetail && (_jsxs("dl", { className: "mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300", children: [_jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "File" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white break-all", children: pdf.name })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Pages" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.pageCount })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Size" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pageDetail.size })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Updated" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pageDetail.updatedAt })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "pdf.js" }), _jsxs("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: ["v", pdf.pdfVersion] })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Created" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.created ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Modified" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.modified ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Page Size" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.pageSizeLabel ?? "Not available" })] }), _jsxs("div", { className: "rounded-2xl bg-slate-100/60 p-3 dark:bg-slate-800/60", children: [_jsx("dt", { className: "text-xs uppercase tracking-[0.3em] text-slate-500", children: "Permissions" }), _jsx("dd", { className: "text-base font-semibold text-slate-900 dark:text-white", children: docInfo?.permissions ?? "Not available" })] }), _jsx("button", { type: "button", className: "w-full rounded-2xl border border-slate-300/60 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 dark:border-white/20 dark:text-slate-200", onClick: reset, children: "Clear file" })] }))] }), _jsx("div", { className: "flex flex-col rounded-3xl border border-slate-200/70 bg-slate-900/5 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5", children: pdf ? (_jsxs(_Fragment, { children: [renderToolbar("inline"), !isFullscreen ? (_jsxs("div", { className: "mt-4 flex flex-1 flex-col gap-4 lg:flex-row", children: [_jsx(ThumbnailSidebar, {}), _jsx("div", { className: "flex-1 overflow-auto rounded-2xl border border-dashed border-slate-300/70 bg-white/90 p-4 shadow-inner dark:border-white/10 dark:bg-slate-950/40", children: canvasElement })] })) : (_jsx("div", { className: "mt-4 rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300", children: "Viewer is in fullscreen. Use the Exit button or press Esc to return here." }))] })) : (_jsxs("div", { className: "flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500 dark:border-white/20 dark:bg-slate-900/40 dark:text-slate-300", children: [_jsx("p", { className: "text-sm uppercase tracking-[0.4em]", children: "Awaiting file" }), _jsx("p", { className: "mt-2 font-display text-2xl text-slate-800 dark:text-white", children: "Drop a PDF to preview the first page." }), _jsx("p", { className: "mt-3 max-w-lg text-sm text-slate-500 dark:text-slate-400", children: "Once the viewer solidifies, this pane will host thumbnails, metadata, and editing affordances for the rest of the toolchain." })] })) })] }), _jsx(PasswordPromptModal, { open: Boolean(passwordPrompt), fileName: passwordPrompt?.fileName ?? "", reason: passwordPrompt?.reason ?? "password-required", onSubmit: handlePasswordSubmit, onCancel: handlePasswordCancel }), isFullscreen && pdf && typeof document !== "undefined"
+                ? createPortal(_jsx("div", { ref: fullscreenRef, role: "dialog", "aria-modal": "true", "aria-label": "Fullscreen PDF viewer", className: "fixed inset-0 z-50 bg-slate-950/95 p-4 text-white", children: _jsxs("div", { className: "mx-auto flex h-full max-w-6xl flex-col gap-4", children: [renderToolbar("fullscreen"), _jsxs("div", { className: "flex flex-1 flex-col gap-4 lg:flex-row", children: [_jsx(ThumbnailSidebar, {}), _jsx("div", { className: "flex-1 overflow-auto rounded-2xl border border-white/20 bg-slate-900/50 p-4 shadow-inner", children: canvasElement })] })] }) }), document.body)
                 : null] }));
 };
 export default PdfViewerPage;

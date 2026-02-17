@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 
 import PasswordPromptModal from "../components/PasswordPromptModal";
@@ -12,6 +12,8 @@ import {
   type CompressionPresetId,
   type CompressionResult,
 } from "../lib/pdfCompression";
+import { formatBytes, formatTimestamp } from "../lib/format";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
 
@@ -26,33 +28,6 @@ const futureTracks = [
   "Offer an optional serverless optimizer for archival-grade compression.",
   "Playwright E2E coverage that asserts on byte savings for representative fixtures.",
 ];
-
-const formatBytes = (size: number) => {
-  if (!Number.isFinite(size) || size <= 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB", "TB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  const value = size / 1024 ** power;
-  return `${power === 0 ? Math.round(value) : value.toFixed(1)} ${units[power]}`;
-};
-
-const formatDate = (value: string | number | null | undefined) => {
-  if (!value) {
-    return "—";
-  }
-
-  const date = typeof value === "number" ? new Date(value) : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-};
 
 const formatPageSize = (pageSize: LoadedPdf["metadata"]["pageSize"]) => {
   if (!pageSize) {
@@ -72,7 +47,6 @@ const CompressionToolPage = () => {
   const [compressionSuccess, setCompressionSuccess] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<CompressionResult | null>(null);
   const [presetId, setPresetId] = useState<CompressionPresetId>("balanced");
-  const [isDragActive, setDragActive] = useState(false);
   const [isCompressing, setCompressing] = useState(false);
   const [passwordPrompt, setPasswordPrompt] = useState<{
     fileName: string;
@@ -150,35 +124,17 @@ const CompressionToolPage = () => {
     [pdf, requestPassword],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      const nextFile = files?.[0];
-      void loadFile(nextFile);
-      event.target.value = "";
+  const handleFilesSelected = useCallback(
+    (files: FileList) => {
+      void loadFile(files[0]);
     },
     [loadFile],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragActive(false);
-      const file = event.dataTransfer.files?.[0] ?? null;
-      void loadFile(file);
-    },
-    [loadFile],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(false);
-  }, []);
+  const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+    accept: "application/pdf",
+    onFiles: handleFilesSelected,
+  });
 
   const sizeInsight = useMemo(() => {
     if (!pdf) {
@@ -240,9 +196,7 @@ const CompressionToolPage = () => {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        {...dropZoneProps}
         className={clsx(
           "rounded-[32px] border-2 border-dashed p-10 transition-colors",
           isDragActive
@@ -266,13 +220,7 @@ const CompressionToolPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input
-              id="compression-upload"
-              type="file"
-              accept="application/pdf"
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="compression-upload" {...inputProps} />
             <span className="text-xs uppercase tracking-[0.4em] text-slate-400">
               or drag files anywhere in this panel
             </span>
@@ -455,8 +403,8 @@ const CompressionToolPage = () => {
                 <li>Page size: {formatPageSize(pdf.metadata.pageSize)}</li>
                 <li>Title: {pdf.metadata.title ?? "—"}</li>
                 <li>Author: {pdf.metadata.author ?? "—"}</li>
-                <li>Created: {formatDate(pdf.metadata.creationDate ?? pdf.lastModified)}</li>
-                <li>Modified: {formatDate(pdf.metadata.modificationDate)}</li>
+                <li>Created: {formatTimestamp(pdf.metadata.creationDate ?? pdf.lastModified)}</li>
+                <li>Modified: {formatTimestamp(pdf.metadata.modificationDate)}</li>
               </ul>
             </div>
 

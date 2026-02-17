@@ -12,6 +12,7 @@ const badgeStyles: Record<ActivityCategory, string> = {
   "images-to-pdf": "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-200",
   compression: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-100",
   signatures: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-100",
+  "pdf-to-images": "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-200",
 };
 
 const badgeLabels: Record<ActivityCategory, string> = {
@@ -23,6 +24,7 @@ const badgeLabels: Record<ActivityCategory, string> = {
   "images-to-pdf": "Images → PDF",
   compression: "Compression",
   signatures: "Signatures",
+  "pdf-to-images": "PDF → Images",
 };
 
 const formatActivityTime = (timestamp: number) =>
@@ -41,28 +43,30 @@ const LandingPage = () => {
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          Phase 0.7.0
+          Phase 0.8.5
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
           Live
         </p>
         <h1 className="font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl">
-          View, merge, split, edit, and compress PDFs—entirely in your browser.
+          View, merge, split, edit, compress, and export PDFs—entirely in your browser.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
           PDF Workbench is a complete client-side PDF toolkit. Load files, merge stacks, split by
           selection or preset, reorder/rotate/delete pages, convert images to PDF, compress
-          downloads, and now stamp visual signatures—entirely offline.
+          downloads, stamp visual signatures, search text with Ctrl+F, and export pages as
+          images—entirely offline.
         </p>
         <p className="mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Signed documents? Phase 0.7.0 is here: draw, type, or upload signatures, drag/resize them
-          onto any page, and export without ever leaving the browser.
+          New in 0.8.5: PDF → Images export with format/scale/quality controls, and in-viewer text
+          search with match navigation. Plus full keyboard accessibility and skip-to-content
+          support.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            to="/signatures"
+            to="/pdf-to-images"
             className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
           >
-            Try Signatures →
+            Try PDF → Images →
           </Link>
           <Link
             to="/viewer"
@@ -96,7 +100,7 @@ const LandingPage = () => {
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Phase 0.7.0
+            Phase 0.8.5
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
             What&rsquo;s live right now?
@@ -120,11 +124,19 @@ const LandingPage = () => {
               stamp history
             </li>
             <li>
-              ✅ Password prompts, activity log, and unit + E2E test coverage across all tools
+              ✅ PDF → Images export with PNG/JPEG format, 1x–3x scale, quality slider, and ZIP
+              bundling
             </li>
             <li>
-              ✅ Light/dark theming, responsive shell, and ESLint+Vitest+Playwright keeping it
-              honest
+              ✅ In-viewer text search (Ctrl+F) with match count, navigation, and page jumping
+            </li>
+            <li>
+              ✅ Keyboard accessibility: Ctrl+O, arrow nav, zoom shortcuts, skip link, focus
+              trapping, and ARIA roles across all modals
+            </li>
+            <li>
+              ✅ 138 unit tests, Playwright E2E coverage, password prompts, activity log, and
+              light/dark theming
             </li>
           </ul>
         </article>
@@ -154,8 +166,8 @@ const LandingPage = () => {
               ))
             ) : (
               <p className="rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                0.8.0 shifts to UX & accessibility polish: unified layouts, keyboard shortcuts, and
-                a11y audits ahead of the 1.0 hardening pass.
+                0.9.0 shifts to hardening: test coverage, error boundaries, friendly error messages,
+                and documentation ahead of the stable 1.0 release.
               </p>
             )}
           </div>

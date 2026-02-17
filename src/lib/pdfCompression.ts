@@ -1,6 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 
 import { buildDownloadName } from "./documentPipeline";
+import { formatBytes } from "./format";
 import type { ExportResult } from "./documentPipeline";
 import type { LoadedPdf } from "./pdfLoader";
 
@@ -177,17 +178,6 @@ const buildCompressedPdf = async (
 
   const pdfBytes = await output.save();
   return { pdfBytes, warnings };
-};
-
-const formatBytes = (size: number) => {
-  if (!Number.isFinite(size) || size <= 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB", "TB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  const value = size / 1024 ** power;
-  return `${power === 0 ? Math.round(value) : value.toFixed(1)} ${units[power]}`;
 };
 
 export const COMPRESSION_PRESETS = PRESET_OPTIONS;

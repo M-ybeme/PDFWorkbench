@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useState } from "react";
 
 import type { SignatureEntry } from "../../state/signatureLibrary";
+import { formatTimestamp } from "../../lib/format";
 import type { DrawnStroke, SignaturePlacement, TextPlacement } from "../../lib/signaturePlacement";
 
 export type ToolMode = "signature" | "text" | "symbol" | "pen" | "highlighter";
@@ -33,12 +34,6 @@ export const DEFAULT_TEXT_DRAFT: TextDraft = {
   color: "#111827",
   widthPct: 0.35,
 };
-
-const formatTimestamp = (value: number) =>
-  new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
 
 type SignatureRibbonProps = {
   activeTool: ToolMode;

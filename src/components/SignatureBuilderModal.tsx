@@ -9,6 +9,7 @@ import {
 } from "react";
 import clsx from "clsx";
 
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { SIGNATURE_DISCLAIMER_COPY } from "../lib/signaturePlacement";
 import type { SignatureEntry } from "../state/signatureLibrary";
 import { useSignatureLibrary } from "../state/signatureLibrary";
@@ -58,6 +59,8 @@ const getTypefaceById = (id: string) =>
 
 const SignatureBuilderModal = ({ open, onClose, onCreated }: SignatureBuilderModalProps) => {
   const addSignature = useSignatureLibrary((state) => state.addSignature);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, open);
   const [mode, setMode] = useState<(typeof TABS)[number]["id"]>("draw");
   const [label, setLabel] = useState("Signature");
   const [drawColor, setDrawColor] = useState<string>(COLOR_OPTIONS[0]);
@@ -380,16 +383,26 @@ const SignatureBuilderModal = ({ open, onClose, onCreated }: SignatureBuilderMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
       <div className="absolute inset-0 bg-slate-900/70" aria-hidden="true" onClick={closeModal} />
-      <div className="relative z-10 w-full max-w-4xl rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-slate-950/95">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signature-modal-title"
+        aria-describedby="signature-modal-desc"
+        className="relative z-10 w-full max-w-4xl rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-slate-950/95"
+      >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               Signatures
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
+            <h2
+              id="signature-modal-title"
+              className="text-2xl font-semibold text-slate-900 dark:text-white"
+            >
               Create a signature stamp
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p id="signature-modal-desc" className="text-sm text-slate-500 dark:text-slate-400">
               {SIGNATURE_DISCLAIMER_COPY}
             </p>
           </div>

@@ -1,5 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { buildDownloadName } from "./documentPipeline";
+import { formatBytes } from "./format";
 const PRESET_OPTIONS = [
     {
         id: "high",
@@ -122,15 +123,6 @@ const buildCompressedPdf = async (pdf, preset) => {
     }
     const pdfBytes = await output.save();
     return { pdfBytes, warnings };
-};
-const formatBytes = (size) => {
-    if (!Number.isFinite(size) || size <= 0) {
-        return "0 B";
-    }
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-    const value = size / 1024 ** power;
-    return `${power === 0 ? Math.round(value) : value.toFixed(1)} ${units[power]}`;
 };
 export const COMPRESSION_PRESETS = PRESET_OPTIONS;
 export const getCompressionPreset = (presetId) => {

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { formatBytes } from "../lib/format";
 const createId = () => {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
         return crypto.randomUUID();
@@ -38,15 +39,6 @@ export const useActivityLog = create()(persist((set) => ({
         return { ...currentState, ...typed, entries: merged };
     },
 }));
-const formatBytes = (size) => {
-    if (!Number.isFinite(size) || size <= 0) {
-        return "0 B";
-    }
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-    const value = size / 1024 ** power;
-    return `${power === 0 ? Math.round(value) : value.toFixed(1)} ${units[power]}`;
-};
 const resolveActivityCategory = (result) => {
     switch (result.activity.tool) {
         case "merge":
@@ -61,6 +53,8 @@ const resolveActivityCategory = (result) => {
             return "compression";
         case "signatures":
             return "signatures";
+        case "pdf-to-images":
+            return "pdf-to-images";
         case "viewer":
         default:
             return "viewer";
@@ -85,6 +79,8 @@ const buildLabel = (result) => {
         }
         case "signatures":
             return `Stamped signature on ${pluralize(result.activity.sourceCount, "PDF")}`;
+        case "pdf-to-images":
+            return `Exported ${pluralize(result.activity.sourceCount, "page")} as images`;
         case "viewer":
             return "Downloaded from viewer";
         default:

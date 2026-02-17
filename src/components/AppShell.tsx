@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { toolRoutes } from "../data/toolRoutes";
 import ThemeToggle from "./ThemeToggle";
 import { useUIState } from "../state/uiState";
@@ -15,6 +16,20 @@ const AppShell = () => {
   const setSidebarCollapsed = useUIState((state) => state.setSidebarCollapsed);
   const [isAnimating, setAnimating] = useState(false);
 
+  const shortcuts = useMemo(
+    () => [
+      {
+        key: "o",
+        ctrl: true,
+        handler: () => {
+          window.dispatchEvent(new CustomEvent("pdfworkbench:open-file"));
+        },
+      },
+    ],
+    [],
+  );
+  useKeyboardShortcuts(shortcuts);
+
   const handleNavToggle = () => {
     const currentState = useUIState.getState().navOpen;
     setAnimating(true);
@@ -24,6 +39,12 @@ const AppShell = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg dark:focus:bg-white dark:focus:text-slate-900"
+      >
+        Skip to main content
+      </a>
       <div
         className={clsx(
           "mx-auto flex flex-col gap-8 px-4 py-8 lg:flex-row lg:py-12",
@@ -58,7 +79,7 @@ const AppShell = () => {
                   PDF WORKBENCH
                 </p>
                 <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-                  v0.7 Signatures
+                  v0.8.5 Feature Gaps
                 </p>
               </div>
             </Link>
@@ -86,6 +107,7 @@ const AppShell = () => {
           </div>
 
           <nav
+            aria-label="Tool navigation"
             className={clsx(
               "mt-8 space-y-2 text-sm font-medium",
               navOpen ? "block" : "hidden lg:block",
@@ -134,7 +156,7 @@ const AppShell = () => {
           </nav>
         </aside>
 
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <Outlet />
         </main>
       </div>

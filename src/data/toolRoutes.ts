@@ -76,4 +76,13 @@ export const toolRoutes: ToolRoute[] = [
     path: "signatures",
     status: "live",
   },
+  {
+    id: "pdf-to-images",
+    label: "PDF → Images",
+    summary: "Export PDF pages as PNG or JPEG images, individually or bundled as a ZIP.",
+    version: "0.8.x",
+    eta: "PDF to Images · Live",
+    path: "pdf-to-images",
+    status: "live",
+  },
 ];

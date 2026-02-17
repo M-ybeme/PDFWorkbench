@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import clsx from "clsx";
 
 import PasswordPromptModal from "../components/PasswordPromptModal";
@@ -22,6 +14,7 @@ import {
   type EditablePage,
 } from "../lib/pdfEdit";
 import { type ExportResult } from "../lib/documentPipeline";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 
 const THUMBNAIL_SCALE = 0.22;
@@ -60,9 +53,6 @@ const pagesChanged = (a: EditablePage[], b: EditablePage[]) => {
   return false;
 };
 
-const dragContainsFiles = (event: DragEvent<HTMLElement>) =>
-  Array.from(event.dataTransfer?.types ?? []).includes("Files");
-
 const PageEditorPage = () => {
   const [pdf, setPdf] = useState<LoadedPdf | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -70,7 +60,6 @@ const PageEditorPage = () => {
   const [pages, setPages] = useState<EditablePage[]>([]);
   const [history, setHistory] = useState<EditablePage[][]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-  const [isFileDragActive, setFileDragActive] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isDownloading, setDownloading] = useState(false);
@@ -215,44 +204,21 @@ const PageEditorPage = () => {
     [pdf],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      const nextFile = files?.[0];
-      void loadFile(nextFile);
-      event.target.value = "";
+  const handleFilesSelected = useCallback(
+    (files: FileList) => {
+      void loadFile(files[0]);
     },
     [loadFile],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (!dragContainsFiles(event)) {
-        return;
-      }
-      event.preventDefault();
-      setFileDragActive(false);
-      const nextFile = event.dataTransfer.files?.[0];
-      void loadFile(nextFile ?? null);
-    },
-    [loadFile],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (!dragContainsFiles(event)) {
-      return;
-    }
-    event.preventDefault();
-    setFileDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (!dragContainsFiles(event)) {
-      return;
-    }
-    event.preventDefault();
-    setFileDragActive(false);
-  }, []);
+  const {
+    isDragActive: isFileDragActive,
+    inputProps,
+    dropZoneProps: fileDropZoneProps,
+  } = useDragDrop({
+    accept: "application/pdf",
+    onFiles: handleFilesSelected,
+  });
 
   const updatePages = useCallback((updater: (pages: EditablePage[]) => EditablePage[]) => {
     setPages((current) => {
@@ -402,9 +368,7 @@ const PageEditorPage = () => {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        {...fileDropZoneProps}
         className={clsx(
           "rounded-[32px] border-2 border-dashed p-10 transition-colors",
           isFileDragActive
@@ -428,13 +392,7 @@ const PageEditorPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input
-              id="editor-upload"
-              type="file"
-              accept="application/pdf"
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="editor-upload" {...inputProps} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>

@@ -1,32 +1,20 @@
-import { useCallback, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import clsx from "clsx";
 
+import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
+import { formatBytes, formatTimestamp } from "../lib/format";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { mergeLoadedPdfsToExportResult } from "../lib/pdfMerge";
 import { type PdfPasswordReason } from "../lib/pdfLoader";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 import { usePdfAssets } from "../state/pdfAssets";
-
-const formatBytes = (size: number) => {
-  if (size === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  return `${(size / 1024 ** power).toFixed(power === 0 ? 0 : 1)} ${units[power]}`;
-};
-
-const formatTimestamp = (timestamp: number) => {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
-};
 
 const MergeToolPage = () => {
   const { assets, isBusy, error, addAsset, removeAsset, reorderAssets, clearError } =
     usePdfAssets();
-  const [isDragActive, setDragActive] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [mergeSuccess, setMergeSuccess] = useState<string | null>(null);
@@ -63,46 +51,20 @@ const MergeToolPage = () => {
   }, [passwordPrompt]);
 
   const ingestFiles = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) {
-        return;
-      }
-
+    (files: FileList) => {
       dismissMergeAlerts();
       for (const file of Array.from(files)) {
-        await addAsset(file, { requestPassword: requestPassword(file.name) });
+        void addAsset(file, { requestPassword: requestPassword(file.name) });
       }
     },
     [addAsset, dismissMergeAlerts, requestPassword],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      void ingestFiles(files);
-      event.target.value = "";
-    },
-    [ingestFiles],
-  );
-
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragActive(false);
-      void ingestFiles(event.dataTransfer.files);
-    },
-    [ingestFiles],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragActive(false);
-  }, []);
+  const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+    accept: "application/pdf",
+    multiple: true,
+    onFiles: ingestFiles,
+  });
 
   const handleMerge = useCallback(async () => {
     if (assets.length < 2) {
@@ -143,9 +105,7 @@ const MergeToolPage = () => {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        {...dropZoneProps}
         className={clsx(
           "rounded-3xl border-2 border-dashed p-10 text-center transition-colors",
           isDragActive
@@ -168,14 +128,7 @@ const MergeToolPage = () => {
             >
               Choose PDFs
             </label>
-            <input
-              id="merge-upload"
-              type="file"
-              accept="application/pdf"
-              multiple
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="merge-upload" {...inputProps} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>
@@ -184,36 +137,21 @@ const MergeToolPage = () => {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-start justify-between gap-4">
-            <p>{error}</p>
-            <button className="text-xs font-semibold uppercase" onClick={clearError}>
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={clearError}>
+          <p>{error}</p>
+        </Alert>
       ) : null}
 
       {mergeError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-start justify-between gap-4">
-            <p>{mergeError}</p>
-            <button className="text-xs font-semibold uppercase" onClick={dismissMergeAlerts}>
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={dismissMergeAlerts}>
+          <p>{mergeError}</p>
+        </Alert>
       ) : null}
 
       {mergeSuccess ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
-          <div className="flex items-start justify-between gap-4">
-            <p>{mergeSuccess}</p>
-            <button className="text-xs font-semibold uppercase" onClick={dismissMergeAlerts}>
-              Hide
-            </button>
-          </div>
-        </div>
+        <Alert variant="success" onDismiss={dismissMergeAlerts} dismissLabel="Hide">
+          <p>{mergeSuccess}</p>
+        </Alert>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">

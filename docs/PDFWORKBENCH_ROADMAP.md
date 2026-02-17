@@ -14,7 +14,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
-## Status — 2026-02-13
+## Status — 2026-02-16
 
 - Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
 - 0.2.0 viewer now ships drag/drop ingest, pdf.js rendering, cached page draws, richer metadata, and a scrollable thumbnail rail.
@@ -27,7 +27,9 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - Shared `PdfSource` → `ExportResult` pipeline contract and `logExportResult` helper now back merge, split, page editor, and images workspaces for consistent naming, metadata, and activity logging.
 - Compression (0.6.0) workspace now has working canvas-based downscale + JPEG re-encode pipeline with three presets (High/Balanced/Smallest), actual before/after size reporting, unit tests, and Playwright E2E coverage.
 - Signatures (0.7.0) workspace now ships draw/type/upload signature creation, text/symbol fill tools, pen/highlighter freehand drawing, drag/resize placement, undo stack (Ctrl+Z), session persistence across refreshes, and canvas-to-PNG stroke export. Covered by unit tests (10 cases) and Playwright E2E (2 scenarios).
-- Next steps: begin 0.8.0 UX & Accessibility work (unified layout, keyboard shortcuts, ARIA roles).
+- UX & Accessibility (0.8.0) delivers shared utilities (`formatBytes`, `formatTimestamp`), `useDragDrop` hook replacing ~30 lines per page across all 7 tools, shared UI components (Alert, Button, DropZone), `useFocusTrap` and `useKeyboardShortcuts` hooks, ARIA roles on all modals and fullscreen overlay, skip-to-content link, keyboard shortcuts (Ctrl+O, arrow nav, +/- zoom, 0 reset), and 124 unit tests + 11 Playwright E2E tests all passing.
+- Feature Gaps (0.8.5) delivers PDF → Images export tool (format/scale/quality controls, ZIP bundling, progress bar), text search in viewer (Ctrl+F, debounced search, match navigation, SearchBar component), 138 unit tests + E2E coverage. Password protection on export deferred — pdf-lib v1.17.1 cannot encrypt PDFs and no viable browser-only alternative exists.
+- Next steps: begin 0.9.0 Hardening work.
 
 ---
 
@@ -40,9 +42,11 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - **0.5.x — Images → PDF**: Build PDFs from image sets
 - **0.6.x — Compression**: Optimize/resize PDF output
 - **0.7.x — Signatures**: Drawing/placing signatures
-- **0.8.x — UX & Accessibility**: Fit & finish, keyboard controls
+- **0.8.0 — UX & Accessibility**: Fit & finish, keyboard controls
+- **0.8.5 — Feature Gaps**: Text search, password protection on export, PDF → Images
 - **0.9.x — Hardening**: Tests, error handling, docs
 - **1.0.0 — Stable Release**: Complete, polished suite
+- **Post-1.0 — New Tools**: Watermark/page numbering, redaction, PDF → Images batch
 
 ---
 
@@ -266,24 +270,71 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 **Goals:** Finalize usability and polish.
 
+**Progress checkpoint — Feb 2026**
+
+- [x] Shared formatting utilities (`formatBytes`, `formatTimestamp`) extracted from 6+ files into `src/lib/format.ts` with 16 unit tests covering edge cases.
+- [x] `useDragDrop` hook consolidates drag/drop + file input + global Ctrl+O event handling; all 7 tool pages migrated, removing ~30 lines of duplication each.
+- [x] Shared UI components (Alert, Button, DropZone) with ARIA roles, variant/size systems, and per-tool accent colors.
+- [x] `useFocusTrap` hook with Tab/Shift+Tab trapping and focus restoration applied to PasswordPromptModal, SignatureBuilderModal, and fullscreen viewer overlay.
+- [x] `useKeyboardShortcuts` declarative hook with input-element guard; used for viewer navigation and global Ctrl+O.
+- [x] All modals and fullscreen overlay have `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, and `aria-describedby`.
+- [x] Skip-to-content link and `aria-label` on navigation landmark in AppShell.
+- [x] 124 unit tests and 11 Playwright E2E tests all passing; TypeScript and build clean.
+
 ### User-Facing
 
-- Unified layout across all tools
-- Keyboard shortcuts:
-  - Viewer navigation: arrows, +/- for zoom
-  - Ctrl+O: open file
-
-- ARIA roles and proper tab order
+- [x] Unified layout across all tools (shared `useDragDrop`, `Alert`, `Button`, `DropZone` components)
+- [x] Keyboard shortcuts:
+  - [x] Viewer navigation: arrows for page, +/- for zoom, 0 for reset
+  - [x] Ctrl+O: open file (global, dispatched via custom event)
+- [x] ARIA roles and proper tab order (modals, fullscreen overlay, skip link, nav landmark)
 
 ### Engineering
 
-- Shared UI components (buttons, modals, drop zones)
-- a11y linting and manual keyboard testing
+- [x] Shared UI components (Alert with ARIA roles, Button with variants, DropZone with accent colors)
+- [x] Shared hooks (`useDragDrop`, `useFocusTrap`, `useKeyboardShortcuts`)
+- [x] Shared utilities (`formatBytes`, `formatTimestamp`)
+- [x] a11y linting (`eslint-plugin-jsx-a11y/recommended` already configured) and keyboard testing
 
 ### Tests
 
-- Component tests for keyboard bindings
-- E2E keyboard navigation scenario
+- [x] Component tests for keyboard bindings (PasswordPromptModal, PdfViewerPage)
+- [x] E2E keyboard navigation scenario (skip link, Ctrl+O, arrow nav, zoom, ARIA landmarks)
+
+---
+
+## 0.8.5 — Feature Gaps
+
+**Goals:** Close obvious feature gaps in existing tools before hardening.
+
+**Progress checkpoint — Feb 2026**
+
+- [x] PDF → Images export tool page with format (PNG/JPEG), scale (1x/2x/3x), JPEG quality slider, progress bar, and ZIP bundling for multi-page exports.
+- [x] Text search in viewer: `Ctrl+F` opens SearchBar, debounced case-insensitive search across all pages via `page.getTextContent()`, match navigation (Enter/Shift+Enter), match count display.
+- [x] `usePdfTextSearch` hook with per-page text content caching, match navigation, and page boundary crossing.
+- [x] `SearchBar` component with auto-focus, keyboard shortcuts (Escape to close, Enter/Shift+Enter for next/prev), `role="search"` accessibility.
+- [x] Route registration, activity log category, and landing page badge for PDF → Images.
+- [ ] Password protection on export — deferred. pdf-lib v1.17.1 cannot encrypt output PDFs and no viable browser-only alternative exists.
+
+### User-Facing
+
+- [x] Text search in viewer (`Ctrl+F`) with match count and navigation
+- [x] PDF → Images export — render pages as PNG/JPEG, download individually or as ZIP
+- [ ] ~~Password protection on export~~ — deferred (pdf-lib limitation)
+
+### Engineering
+
+- [x] `usePdfTextSearch` hook extracting text via pdf.js `getTextContent()` with debounced search and cached text per page
+- [x] `SearchBar` component with auto-focus, Enter/Shift+Enter navigation, Escape to close
+- [x] `pdfToImages.ts` rendering pipeline: canvas-based page rendering at configurable scale, PNG/JPEG export, JSZip bundling
+- [x] `PdfToImagesPage.tsx` tool page following established CompressionToolPage pattern
+
+### Tests
+
+- [x] Unit tests for SearchBar component (9 tests)
+- [x] Unit tests for pdfToImages types (5 tests)
+- [x] E2E: search text in viewer, toggle search bar
+- [x] E2E: export multi-page PDF as ZIP of PNGs, export single-page as direct JPEG
 
 ---
 
@@ -342,5 +393,24 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
   - Clear messaging about privacy
 
 **At this point:** The tool is ready for public use, portfolio demonstration, and long-term maintenance.
+
+---
+
+## Post-1.0 — Future Tools & Enhancements
+
+Ideas for post-release expansion. These add new tool pages or significant new capabilities beyond the core v1.0 scope.
+
+### New Tools
+
+- **PDF → Images (batch)** — Bulk export all pages as a ZIP of PNGs/JPEGs with configurable DPI. Extends the single-page export from 0.8.5 into a full batch workflow.
+- **Watermark / Page Numbering** — Add text or image overlays across all pages. Presets for "DRAFT", "CONFIDENTIAL", date stamps, and page numbering with position/font controls.
+- **Redaction** — Draw rectangles over sensitive content, then permanently flatten the redacted areas. Distinct from signatures in that underlying content is destroyed on export.
+
+### Enhancements to Existing Tools
+
+- **Viewer**: Outline/bookmark navigation, annotation support
+- **Merge**: Page interleaving mode (useful for double-sided scanning)
+- **Compression**: Selective image-only compression that preserves text/vector streams verbatim
+- **Signatures**: Date/time auto-stamp, initials quick-place mode
 
 ---

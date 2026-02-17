@@ -29,7 +29,8 @@ export type ToolId =
   | "editor"
   | "images"
   | "compression"
-  | "signatures";
+  | "signatures"
+  | "pdf-to-images";
 
 export type ExportResult = {
   blob: Blob;

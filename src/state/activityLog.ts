@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { type ExportResult } from "../lib/documentPipeline";
+import { formatBytes } from "../lib/format";
 
 export type ActivityCategory =
   | "viewer"
@@ -11,7 +12,8 @@ export type ActivityCategory =
   | "page-edit"
   | "images-to-pdf"
   | "compression"
-  | "signatures";
+  | "signatures"
+  | "pdf-to-images";
 
 export type ActivityEntry = {
   id: string;
@@ -86,17 +88,6 @@ export const useActivityLog = create<ActivityLogState>()(
   ),
 );
 
-const formatBytes = (size: number) => {
-  if (!Number.isFinite(size) || size <= 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB", "TB"] as const;
-  const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-  const value = size / 1024 ** power;
-  return `${power === 0 ? Math.round(value) : value.toFixed(1)} ${units[power]}`;
-};
-
 const resolveActivityCategory = (result: ExportResult): ActivityCategory => {
   switch (result.activity.tool) {
     case "merge":
@@ -111,6 +102,8 @@ const resolveActivityCategory = (result: ExportResult): ActivityCategory => {
       return "compression";
     case "signatures":
       return "signatures";
+    case "pdf-to-images":
+      return "pdf-to-images";
     case "viewer":
     default:
       return "viewer";
@@ -137,6 +130,8 @@ const buildLabel = (result: ExportResult) => {
     }
     case "signatures":
       return `Stamped signature on ${pluralize(result.activity.sourceCount, "PDF")}`;
+    case "pdf-to-images":
+      return `Exported ${pluralize(result.activity.sourceCount, "page")} as images`;
     case "viewer":
       return "Downloaded from viewer";
     default:

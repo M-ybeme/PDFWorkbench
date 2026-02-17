@@ -8,14 +8,9 @@ import { buildSplitSelectionFileName, buildSplitSliceFileName, buildSplitZipFile
 import { buildZipFromEntries, extractPagesFromLoadedPdf, splitPdfByChunkSize, } from "../lib/pdfSplit";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { logExportResult } from "../state/activityLog";
+import { formatBytes } from "../lib/format";
+import { useDragDrop } from "../hooks/useDragDrop";
 const THUMBNAIL_SCALE = 0.22;
-const formatBytes = (size) => {
-    if (size === 0)
-        return "0 B";
-    const units = ["B", "KB", "MB", "GB"];
-    const power = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-    return `${(size / 1024 ** power).toFixed(power === 0 ? 0 : 1)} ${units[power]}`;
-};
 const cloneBytesToArrayBuffer = (bytes) => {
     const buffer = new ArrayBuffer(bytes.byteLength);
     new Uint8Array(buffer).set(bytes);
@@ -25,7 +20,6 @@ const SplitToolPage = () => {
     const [pdf, setPdf] = useState(null);
     const [status, setStatus] = useState("idle");
     const [error, setError] = useState(null);
-    const [isDragActive, setDragActive] = useState(false);
     const [thumbnails, setThumbnails] = useState([]);
     const [thumbnailStatus, setThumbnailStatus] = useState("idle");
     const [selectedPages, setSelectedPages] = useState(new Set());
@@ -149,26 +143,13 @@ const SplitToolPage = () => {
             setError(getFriendlyPdfError(loadError));
         }
     }, [pdf]);
-    const handleInputChange = useCallback((event) => {
-        const { files } = event.target;
-        const nextFile = files?.[0];
-        void loadFile(nextFile);
-        event.target.value = "";
+    const handleFilesSelected = useCallback((files) => {
+        void loadFile(files[0]);
     }, [loadFile]);
-    const handleDrop = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(false);
-        const nextFile = event.dataTransfer.files?.[0];
-        void loadFile(nextFile);
-    }, [loadFile]);
-    const handleDragOver = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(true);
-    }, []);
-    const handleDragLeave = useCallback((event) => {
-        event.preventDefault();
-        setDragActive(false);
-    }, []);
+    const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+        accept: "application/pdf",
+        onFiles: handleFilesSelected,
+    });
     const togglePageSelection = useCallback((pageNumber) => {
         setSelectionSuccess(null);
         setSelectionError(null);
@@ -295,11 +276,11 @@ const SplitToolPage = () => {
     const selectionCount = selectedPages.size;
     const canDownloadSelection = Boolean(pdf) && selectionCount > 0 && !isSelectionDownloading;
     const canPresetDownload = Boolean(pdf) && !isBundleDownloading && splitSize >= 1 && (pdf?.pageCount ?? 0) > 0;
-    return (_jsxs("div", { className: "mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10", children: [_jsx("div", { onDrop: handleDrop, onDragOver: handleDragOver, onDragLeave: handleDragLeave, className: clsx("rounded-[32px] border-2 border-dashed p-10 transition-colors", isDragActive
+    return (_jsxs("div", { className: "mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10", children: [_jsx("div", { ...dropZoneProps, className: clsx("rounded-[32px] border-2 border-dashed p-10 transition-colors", isDragActive
                     ? "border-cyan-400 bg-cyan-50/70 dark:border-cyan-300 dark:bg-cyan-500/10"
                     : "border-slate-300/70 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950"), children: _jsxs("div", { className: "mx-auto flex max-w-3xl flex-col gap-4 text-center", children: [_jsx("p", { className: "text-2xl font-semibold text-slate-900 dark:text-white", children: pdf ? "Ready to split" : "Split PDFs with precision" }), _jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: pdf
                                 ? "Select pages, preview slices, and export either the highlighted set or a complete bundle every N pages."
-                                : "Drop a PDF or choose a file to render every page as a selectable tile. Build slices manually or generate presets before exporting." }), _jsxs("div", { className: "flex flex-col items-center gap-2", children: [_jsx("label", { htmlFor: "split-upload", className: "inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:bg-white dark:text-slate-900", children: pdf ? "Replace PDF" : "Choose a PDF" }), _jsx("input", { id: "split-upload", type: "file", accept: "application/pdf", className: "sr-only", onChange: handleInputChange }), _jsx("span", { className: "text-xs uppercase tracking-wide text-slate-400", children: "or drag anywhere in this panel" }), pdf ? (_jsx("button", { type: "button", className: "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300", onClick: resetWorkspace, children: "Reset workspace" })) : null] })] }) }), error ? (_jsx("div", { className: "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100", children: error })) : null, status === "loading" ? (_jsx("div", { className: "rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300", children: "Loading PDF..." })) : null, pdf ? (_jsxs("div", { className: "grid gap-6 lg:grid-cols-[2fr,1fr]", children: [_jsxs("div", { className: "space-y-4", children: [_jsxs("section", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.name }), _jsxs("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: [pdf.pageCount, " pages - ", formatBytes(pdf.size)] })] }), _jsxs("div", { className: "text-xs text-slate-400 dark:text-slate-300", children: ["PDF v", pdf.pdfVersion] })] }), _jsxs("div", { className: "mt-4 flex flex-wrap gap-2 text-sm", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("all"), children: "Select all" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("none"), children: "Clear" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("odd"), children: "Odd pages" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("even"), children: "Even pages" })] }), _jsxs("p", { className: "mt-3 text-sm text-slate-500 dark:text-slate-300", children: ["Selection:", " ", _jsx("span", { className: "font-semibold text-slate-900 dark:text-white", children: selectionCount }), " ", "page(s)"] })] }), _jsxs("section", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300", children: "Export selection" }), _jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: "Downloads a single PDF containing the highlighted pages." })] }), _jsx("button", { type: "button", className: "rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition disabled:opacity-40 dark:bg-white dark:text-slate-900", disabled: !canDownloadSelection, onClick: handleSelectionDownload, children: isSelectionDownloading
+                                : "Drop a PDF or choose a file to render every page as a selectable tile. Build slices manually or generate presets before exporting." }), _jsxs("div", { className: "flex flex-col items-center gap-2", children: [_jsx("label", { htmlFor: "split-upload", className: "inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:bg-white dark:text-slate-900", children: pdf ? "Replace PDF" : "Choose a PDF" }), _jsx("input", { id: "split-upload", ...inputProps }), _jsx("span", { className: "text-xs uppercase tracking-wide text-slate-400", children: "or drag anywhere in this panel" }), pdf ? (_jsx("button", { type: "button", className: "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300", onClick: resetWorkspace, children: "Reset workspace" })) : null] })] }) }), error ? (_jsx("div", { className: "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100", children: error })) : null, status === "loading" ? (_jsx("div", { className: "rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300", children: "Loading PDF..." })) : null, pdf ? (_jsxs("div", { className: "grid gap-6 lg:grid-cols-[2fr,1fr]", children: [_jsxs("div", { className: "space-y-4", children: [_jsxs("section", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.name }), _jsxs("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: [pdf.pageCount, " pages - ", formatBytes(pdf.size)] })] }), _jsxs("div", { className: "text-xs text-slate-400 dark:text-slate-300", children: ["PDF v", pdf.pdfVersion] })] }), _jsxs("div", { className: "mt-4 flex flex-wrap gap-2 text-sm", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("all"), children: "Select all" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("none"), children: "Clear" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("odd"), children: "Odd pages" }), _jsx("button", { type: "button", className: "rounded-full border border-slate-200 px-4 py-1 text-slate-600 transition hover:border-slate-300 dark:border-white/10 dark:text-slate-200", onClick: () => applyQuickSelection("even"), children: "Even pages" })] }), _jsxs("p", { className: "mt-3 text-sm text-slate-500 dark:text-slate-300", children: ["Selection:", " ", _jsx("span", { className: "font-semibold text-slate-900 dark:text-white", children: selectionCount }), " ", "page(s)"] })] }), _jsxs("section", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300", children: "Export selection" }), _jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: "Downloads a single PDF containing the highlighted pages." })] }), _jsx("button", { type: "button", className: "rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition disabled:opacity-40 dark:bg-white dark:text-slate-900", disabled: !canDownloadSelection, onClick: handleSelectionDownload, children: isSelectionDownloading
                                                     ? "Preparing..."
                                                     : selectionCount === 0
                                                         ? "Select pages"

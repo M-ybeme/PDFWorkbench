@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import clsx from "clsx";
 import { PDFDocument } from "pdf-lib";
 
@@ -7,6 +7,7 @@ import { buildImagesPdfFileName } from "../lib/fileNames";
 import { computeImagePlacement, type FitMode } from "../lib/imageLayout";
 import { hasPngSignature, isPngBytesComplete } from "../lib/pngIntegrity";
 import { type ExportResult } from "../lib/documentPipeline";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 
 const PAGE_PRESETS = [
@@ -197,14 +198,12 @@ const getPresetById = (id: string) =>
 
 const ImagesToPdfPage = () => {
   const [images, setImages] = useState<ImageAsset[]>([]);
-  const [isDragging, setDragging] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [presetId, setPresetId] = useState<string>(PAGE_PRESETS[0].id);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [fitMode, setFitMode] = useState<FitMode>("fit");
   const [isGenerating, setGenerating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const preset = getPresetById(presetId);
   const orientedDimensions = useMemo(() => {
@@ -246,36 +245,23 @@ const ImagesToPdfPage = () => {
     [images.length],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      void handleFiles(event.target.files);
-      event.target.value = "";
+  const onFilesReceived = useCallback(
+    (files: FileList) => {
+      void handleFiles(files);
     },
     [handleFiles],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      setDragging(false);
-      void handleFiles(event.dataTransfer?.files ?? null);
-    },
-    [handleFiles],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (event.dataTransfer?.types.includes("Files")) {
-      event.preventDefault();
-      setDragging(true);
-    }
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (event.dataTransfer?.types.includes("Files")) {
-      event.preventDefault();
-      setDragging(false);
-    }
-  }, []);
+  const {
+    isDragActive: isDragging,
+    inputProps,
+    dropZoneProps,
+    openFilePicker,
+  } = useDragDrop({
+    accept: "image/*",
+    multiple: true,
+    onFiles: onFilesReceived,
+  });
 
   const removeImage = useCallback((id: string) => {
     setImages((current) => current.filter((image) => image.id !== id));
@@ -381,9 +367,7 @@ const ImagesToPdfPage = () => {
               ? "border-emerald-400 bg-emerald-50/70 dark:border-emerald-300 dark:bg-emerald-500/10"
               : "border-slate-300/70 bg-white/80 dark:border-white/10 dark:bg-slate-900/60",
           )}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          {...dropZoneProps}
         >
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
             0.5.x · Images → PDF
@@ -399,7 +383,7 @@ const ImagesToPdfPage = () => {
             <button
               type="button"
               className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/30 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => openFilePicker()}
             >
               Select images ↗
             </button>
@@ -411,15 +395,7 @@ const ImagesToPdfPage = () => {
             >
               Clear list
             </button>
-            <input
-              ref={fileInputRef}
-              id="images-upload"
-              type="file"
-              accept="image/*"
-              multiple
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="images-upload" {...inputProps} />
           </div>
           {status ? (
             <p className="mt-4 text-sm text-emerald-600 dark:text-emerald-300">{status}</p>
@@ -440,7 +416,7 @@ const ImagesToPdfPage = () => {
             <button
               type="button"
               className="rounded-full border border-slate-300/70 px-4 py-2 text-sm text-slate-600 transition hover:border-slate-600 hover:text-slate-900 dark:border-white/10 dark:text-slate-300"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => openFilePicker()}
             >
               Add more
             </button>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { PdfPasswordReason } from "../lib/pdfLoader";
 
 type PasswordPromptModalProps = {
@@ -30,19 +31,14 @@ const PasswordPromptModal = ({
 }: PasswordPromptModalProps) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
-    if (!open || typeof window === "undefined") {
+    if (!open) {
       return;
     }
-
     setValue("");
-
-    const id = window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 10);
-
-    return () => window.clearTimeout(id);
   }, [open, reason, fileName]);
 
   useEffect(() => {
@@ -78,16 +74,28 @@ const PasswordPromptModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <div className="absolute inset-0 bg-slate-900/70" aria-hidden="true" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="password-modal-title"
+        aria-describedby="password-modal-desc"
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900"
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               {copy.title}
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+            <h2
+              id="password-modal-title"
+              className="mt-1 text-lg font-semibold text-slate-900 dark:text-white"
+            >
               {fileName}
             </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">{copy.message}</p>
+            <p id="password-modal-desc" className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+              {copy.message}
+            </p>
           </div>
           <div>
             <label

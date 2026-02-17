@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useCallback, useEffect, useMemo, useRef, useState, } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
@@ -7,6 +7,7 @@ import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { buildEditedPdfFileName } from "../lib/fileNames";
 import { applyPageEdits, buildEditablePageId, buildEditablePages, } from "../lib/pdfEdit";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 const THUMBNAIL_SCALE = 0.22;
 const HISTORY_LIMIT = 20;
@@ -35,7 +36,6 @@ const pagesChanged = (a, b) => {
     }
     return false;
 };
-const dragContainsFiles = (event) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
 const PageEditorPage = () => {
     const [pdf, setPdf] = useState(null);
     const [status, setStatus] = useState("idle");
@@ -43,7 +43,6 @@ const PageEditorPage = () => {
     const [pages, setPages] = useState([]);
     const [history, setHistory] = useState([]);
     const [thumbnails, setThumbnails] = useState({});
-    const [isFileDragActive, setFileDragActive] = useState(false);
     const [downloadError, setDownloadError] = useState(null);
     const [downloadSuccess, setDownloadSuccess] = useState(null);
     const [isDownloading, setDownloading] = useState(false);
@@ -159,35 +158,13 @@ const PageEditorPage = () => {
             setError(getFriendlyPdfError(loadError));
         }
     }, [pdf]);
-    const handleInputChange = useCallback((event) => {
-        const { files } = event.target;
-        const nextFile = files?.[0];
-        void loadFile(nextFile);
-        event.target.value = "";
+    const handleFilesSelected = useCallback((files) => {
+        void loadFile(files[0]);
     }, [loadFile]);
-    const handleDrop = useCallback((event) => {
-        if (!dragContainsFiles(event)) {
-            return;
-        }
-        event.preventDefault();
-        setFileDragActive(false);
-        const nextFile = event.dataTransfer.files?.[0];
-        void loadFile(nextFile ?? null);
-    }, [loadFile]);
-    const handleDragOver = useCallback((event) => {
-        if (!dragContainsFiles(event)) {
-            return;
-        }
-        event.preventDefault();
-        setFileDragActive(true);
-    }, []);
-    const handleDragLeave = useCallback((event) => {
-        if (!dragContainsFiles(event)) {
-            return;
-        }
-        event.preventDefault();
-        setFileDragActive(false);
-    }, []);
+    const { isDragActive: isFileDragActive, inputProps, dropZoneProps: fileDropZoneProps, } = useDragDrop({
+        accept: "application/pdf",
+        onFiles: handleFilesSelected,
+    });
     const updatePages = useCallback((updater) => {
         setPages((current) => {
             const next = updater(snapshotPages(current));
@@ -298,11 +275,11 @@ const PageEditorPage = () => {
     const activePages = useMemo(() => pages.filter((page) => !page.isDeleted), [pages]);
     const canDownload = Boolean(pdf) && activePages.length > 0 && !isDownloading;
     const canUndo = history.length > 0;
-    return (_jsxs("div", { className: "mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10", children: [_jsx("div", { onDrop: handleDrop, onDragOver: handleDragOver, onDragLeave: handleDragLeave, className: clsx("rounded-[32px] border-2 border-dashed p-10 transition-colors", isFileDragActive
+    return (_jsxs("div", { className: "mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 lg:px-10", children: [_jsx("div", { ...fileDropZoneProps, className: clsx("rounded-[32px] border-2 border-dashed p-10 transition-colors", isFileDragActive
                     ? "border-violet-400 bg-violet-50/70 dark:border-violet-300 dark:bg-violet-500/10"
                     : "border-slate-300/70 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950"), children: _jsxs("div", { className: "mx-auto flex max-w-3xl flex-col gap-4 text-center", children: [_jsx("p", { className: "text-2xl font-semibold text-slate-900 dark:text-white", children: pdf ? "Page editor ready" : "Reorder, rotate, and curate" }), _jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: pdf
                                 ? "Drag thumbnails to reorder, rotate pages inline, and mark deletes before exporting a fresh PDF."
-                                : "Drop a PDF or choose a file to render every page as a draggable tile. Then rotate, delete, undo, and export a clean edit." }), _jsxs("div", { className: "flex flex-col items-center gap-2", children: [_jsx("label", { htmlFor: "editor-upload", className: "inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:bg-white dark:text-slate-900", children: pdf ? "Replace PDF" : "Choose a PDF" }), _jsx("input", { id: "editor-upload", type: "file", accept: "application/pdf", className: "sr-only", onChange: handleInputChange }), _jsx("span", { className: "text-xs uppercase tracking-wide text-slate-400", children: "or drag anywhere in this panel" }), pdf ? (_jsx("button", { type: "button", className: "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300", onClick: resetWorkspace, children: "Reset workspace" })) : null] })] }) }), error ? (_jsx("div", { className: "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100", children: error })) : null, status === "loading" ? (_jsx("div", { className: "rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300", children: "Loading PDF..." })) : null, pdf ? (_jsxs(_Fragment, { children: [_jsxs("div", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.name }), _jsxs("p", { className: "text-xs uppercase tracking-wide text-slate-400", children: [activePages.length, " active / ", totalPages, " total"] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300/80 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 dark:border-white/20 dark:text-slate-200 dark:hover:border-white/40 dark:hover:text-white", onClick: handleUndo, disabled: !canUndo, children: "Undo last change" }), _jsx("button", { type: "button", className: "rounded-full bg-slate-900 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 disabled:translate-y-0 disabled:bg-slate-400 disabled:text-white/70 dark:bg-white dark:text-slate-900 dark:focus-visible:ring-white", onClick: handleApplyDownload, disabled: !canDownload, children: "Apply & Download" })] })] }), downloadError ? (_jsx("p", { className: "mt-3 rounded-2xl border border-red-200 bg-red-50/80 px-4 py-2 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-100", children: downloadError })) : null, downloadSuccess ? (_jsx("p", { className: "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-100", children: downloadSuccess })) : null] }), _jsxs("div", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "mb-4 flex items-center justify-between", children: [_jsx("p", { className: "text-sm font-semibold uppercase tracking-wide text-slate-400", children: "Drag to reorder \u00B7 Rotate \u00B7 Delete" }), _jsx("p", { className: "text-xs text-slate-400", children: "Thumbnails render locally; no uploads leave your device." })] }), pages.length === 0 ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: "Loading pages..." })) : (_jsxs(_Fragment, { children: [_jsx("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3", children: pages.map((page, index) => (_jsxs("div", { role: "group", "aria-label": `Editor page ${index + 1}`, "data-page-card": "true", draggable: true, onDragStart: (event) => handlePageDragStart(event, page.id), onDragEnd: () => {
+                                : "Drop a PDF or choose a file to render every page as a draggable tile. Then rotate, delete, undo, and export a clean edit." }), _jsxs("div", { className: "flex flex-col items-center gap-2", children: [_jsx("label", { htmlFor: "editor-upload", className: "inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:bg-white dark:text-slate-900", children: pdf ? "Replace PDF" : "Choose a PDF" }), _jsx("input", { id: "editor-upload", ...inputProps }), _jsx("span", { className: "text-xs uppercase tracking-wide text-slate-400", children: "or drag anywhere in this panel" }), pdf ? (_jsx("button", { type: "button", className: "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300", onClick: resetWorkspace, children: "Reset workspace" })) : null] })] }) }), error ? (_jsx("div", { className: "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100", children: error })) : null, status === "loading" ? (_jsx("div", { className: "rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300", children: "Loading PDF..." })) : null, pdf ? (_jsxs(_Fragment, { children: [_jsxs("div", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-base font-semibold text-slate-900 dark:text-white", children: pdf.name }), _jsxs("p", { className: "text-xs uppercase tracking-wide text-slate-400", children: [activePages.length, " active / ", totalPages, " total"] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("button", { type: "button", className: "rounded-full border border-slate-300/80 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 dark:border-white/20 dark:text-slate-200 dark:hover:border-white/40 dark:hover:text-white", onClick: handleUndo, disabled: !canUndo, children: "Undo last change" }), _jsx("button", { type: "button", className: "rounded-full bg-slate-900 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 disabled:translate-y-0 disabled:bg-slate-400 disabled:text-white/70 dark:bg-white dark:text-slate-900 dark:focus-visible:ring-white", onClick: handleApplyDownload, disabled: !canDownload, children: "Apply & Download" })] })] }), downloadError ? (_jsx("p", { className: "mt-3 rounded-2xl border border-red-200 bg-red-50/80 px-4 py-2 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-100", children: downloadError })) : null, downloadSuccess ? (_jsx("p", { className: "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-100", children: downloadSuccess })) : null] }), _jsxs("div", { className: "rounded-3xl border border-slate-200/80 bg-white/90 p-5 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "mb-4 flex items-center justify-between", children: [_jsx("p", { className: "text-sm font-semibold uppercase tracking-wide text-slate-400", children: "Drag to reorder \u00B7 Rotate \u00B7 Delete" }), _jsx("p", { className: "text-xs text-slate-400", children: "Thumbnails render locally; no uploads leave your device." })] }), pages.length === 0 ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: "Loading pages..." })) : (_jsxs(_Fragment, { children: [_jsx("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3", children: pages.map((page, index) => (_jsxs("div", { role: "group", "aria-label": `Editor page ${index + 1}`, "data-page-card": "true", draggable: true, onDragStart: (event) => handlePageDragStart(event, page.id), onDragEnd: () => {
                                                 dragSourceId.current = null;
                                             }, onDragOver: handlePageDragOver, onDrop: (event) => handlePageDrop(event, page.id), className: clsx("flex flex-col gap-3 rounded-2xl border px-4 py-4 text-left transition", page.isDeleted
                                                 ? "border-rose-200/70 bg-rose-50/60 text-rose-700 dark:border-rose-900/30 dark:bg-rose-900/10 dark:text-rose-100"

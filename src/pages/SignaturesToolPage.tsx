@@ -4,8 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
-  type DragEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import clsx from "clsx";
@@ -40,6 +38,7 @@ import {
   type StrokePoint,
   type TextPlacement,
 } from "../lib/signaturePlacement";
+import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 import { useSignatureLibrary } from "../state/signatureLibrary";
 import { buildFileKey, useSignatureSession } from "../state/signatureSession";
@@ -74,9 +73,6 @@ type HistorySnapshot = {
 
 const HISTORY_LIMIT = 30;
 
-const dragContainsFiles = (event: DragEvent<HTMLElement>) =>
-  Array.from(event.dataTransfer?.types ?? []).includes("Files");
-
 const SAVE_DEBOUNCE_MS = 800;
 
 const SignaturesToolPage = () => {
@@ -106,7 +102,6 @@ const SignaturesToolPage = () => {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [passwordPrompt, setPasswordPrompt] = useState<PasswordPromptState | null>(null);
   const [isStamping, setStamping] = useState(false);
-  const [isDragActive, setDragActive] = useState(false);
   const [isBuilderOpen, setBuilderOpen] = useState(false);
   const [symbolPreset, setSymbolPreset] = useState<SymbolPreset>(SYMBOL_PRESETS[0]!);
   const [symbolSize, setSymbolSize] = useState(20);
@@ -305,45 +300,17 @@ const SignaturesToolPage = () => {
     [pdf],
   );
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const { files } = event.target;
-      const file = files?.[0];
-      void loadFile(file ?? null);
-      event.target.value = "";
+  const handleFilesSelected = useCallback(
+    (files: FileList) => {
+      void loadFile(files[0] ?? null);
     },
     [loadFile],
   );
 
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (!dragContainsFiles(event)) {
-        return;
-      }
-
-      event.preventDefault();
-      setDragActive(false);
-      const file = event.dataTransfer.files?.[0];
-      void loadFile(file ?? null);
-    },
-    [loadFile],
-  );
-
-  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (!dragContainsFiles(event)) {
-      return;
-    }
-    event.preventDefault();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (!dragContainsFiles(event)) {
-      return;
-    }
-    event.preventDefault();
-    setDragActive(false);
-  }, []);
+  const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
+    accept: "application/pdf",
+    onFiles: handleFilesSelected,
+  });
 
   const handlePlacementDelete = useCallback(
     (id: string) => {
@@ -830,9 +797,7 @@ const SignaturesToolPage = () => {
   return (
     <div className="mx-auto flex max-w-full flex-col gap-4 px-4 py-6 lg:px-8">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        {...dropZoneProps}
         className={clsx(
           "rounded-3xl border-2 border-dashed p-8 text-center transition-colors",
           isDragActive
@@ -856,13 +821,7 @@ const SignaturesToolPage = () => {
             >
               Choose PDF
             </label>
-            <input
-              id="signature-upload"
-              type="file"
-              accept="application/pdf"
-              className="sr-only"
-              onChange={handleInputChange}
-            />
+            <input id="signature-upload" {...inputProps} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>
