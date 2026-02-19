@@ -374,7 +374,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ### Engineering
 
-- [X] Test coverage pass for all core modules
+- [x] Test coverage pass for all core modules
 - Critical-path E2E tests:
   - [x] Page Editor — Open → Edit → Download
   - [x] Images → PDF

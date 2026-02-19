@@ -3,68 +3,646 @@ import clsx from "clsx";
 import { useState } from "react";
 import { formatTimestamp } from "../../lib/format";
 export const SYMBOL_PRESETS = [
-    { id: "check", label: "Checkmark", glyph: "✔" },
-    { id: "cross", label: "Cross", glyph: "✘" },
-    { id: "dot", label: "Dot", glyph: "•" },
-    { id: "box", label: "Empty box", glyph: "☐" },
-    { id: "box-check", label: "Checked box", glyph: "☑" },
+  { id: "check", label: "Checkmark", glyph: "✔" },
+  { id: "cross", label: "Cross", glyph: "✘" },
+  { id: "dot", label: "Dot", glyph: "•" },
+  { id: "box", label: "Empty box", glyph: "☐" },
+  { id: "box-check", label: "Checked box", glyph: "☑" },
 ];
 export const DEFAULT_TEXT_DRAFT = {
-    text: "",
-    fontSizePt: 18,
-    color: "#111827",
-    widthPct: 0.35,
+  text: "",
+  fontSizePt: 18,
+  color: "#111827",
+  widthPct: 0.35,
 };
 const TOOL_TABS = [
-    { id: "signature", label: "Signature" },
-    { id: "text", label: "Text" },
-    { id: "symbol", label: "Symbols" },
-    { id: "pen", label: "Pen" },
-    { id: "highlighter", label: "Highlighter" },
+  { id: "signature", label: "Signature" },
+  { id: "text", label: "Text" },
+  { id: "symbol", label: "Symbols" },
+  { id: "pen", label: "Pen" },
+  { id: "highlighter", label: "Highlighter" },
 ];
 const SignatureRibbon = (props) => {
-    const [placementsOpen, setPlacementsOpen] = useState(false);
-    const totalPlacements = props.placements.length + props.textPlacements.length + props.strokes.length;
-    return (_jsxs("div", { className: "rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center gap-2 border-b border-slate-200/70 px-3 py-2 dark:border-white/10", children: [_jsx("div", { className: "flex flex-wrap items-center gap-1", children: TOOL_TABS.map((tab) => (_jsx("button", { type: "button", onClick: () => props.onActivateTool(tab.id), className: clsx("rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition", props.activeTool === tab.id
-                                ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
-                                : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10"), children: tab.label }, tab.id))) }), _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }), _jsxs("button", { type: "button", className: clsx("rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition", placementsOpen
-                            ? "border-slate-900 bg-slate-900/5 text-slate-900 dark:border-white dark:bg-white/10 dark:text-white"
-                            : "border-slate-200 text-slate-500 hover:border-slate-300 dark:border-white/10 dark:text-slate-300"), onClick: () => setPlacementsOpen((v) => !v), children: [totalPlacements > 0 ? `${totalPlacements} items` : "Items", " ", placementsOpen ? "▲" : "▼"] }), _jsxs("div", { className: "ml-auto flex items-center gap-2", children: [props.downloadError ? (_jsx("span", { className: "rounded-lg bg-rose-50 px-2 py-1 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-200", children: props.downloadError })) : null, props.downloadMessage ? (_jsx("span", { className: "rounded-lg bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200", children: props.downloadMessage })) : null, _jsxs("button", { type: "button", className: "rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300 disabled:opacity-40 dark:border-white/10 dark:text-slate-300", disabled: props.historyLength === 0, onClick: props.onUndo, children: ["Undo", props.historyLength > 0 ? ` (${props.historyLength})` : ""] }), _jsx("button", { type: "button", className: "rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-white dark:text-slate-900", disabled: !props.canStamp, onClick: props.onStamp, children: props.isStamping ? "Stamping..." : "Stamp & download" })] })] }), _jsxs("div", { className: "px-3 py-2", children: [props.activeTool === "signature" && _jsx(SignaturePanel, { ...props }), props.activeTool === "text" && _jsx(TextPanel, { ...props }), props.activeTool === "symbol" && _jsx(SymbolPanel, { ...props }), props.activeTool === "pen" && _jsx(PenPanel, { ...props, tool: "pen" }), props.activeTool === "highlighter" && _jsx(PenPanel, { ...props, tool: "highlighter" })] }), placementsOpen ? _jsx(PlacementsDrawer, { ...props }) : null] }));
+  const [placementsOpen, setPlacementsOpen] = useState(false);
+  const totalPlacements =
+    props.placements.length + props.textPlacements.length + props.strokes.length;
+  return _jsxs("div", {
+    className:
+      "rounded-2xl border border-slate-200/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-900/70",
+    children: [
+      _jsxs("div", {
+        className:
+          "flex flex-wrap items-center gap-2 border-b border-slate-200/70 px-3 py-2 dark:border-white/10",
+        children: [
+          _jsx("div", {
+            className: "flex flex-wrap items-center gap-1",
+            children: TOOL_TABS.map((tab) =>
+              _jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => props.onActivateTool(tab.id),
+                  className: clsx(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
+                    props.activeTool === tab.id
+                      ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10",
+                  ),
+                  children: tab.label,
+                },
+                tab.id,
+              ),
+            ),
+          }),
+          _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }),
+          _jsxs("button", {
+            type: "button",
+            className: clsx(
+              "rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
+              placementsOpen
+                ? "border-slate-900 bg-slate-900/5 text-slate-900 dark:border-white dark:bg-white/10 dark:text-white"
+                : "border-slate-200 text-slate-500 hover:border-slate-300 dark:border-white/10 dark:text-slate-300",
+            ),
+            onClick: () => setPlacementsOpen((v) => !v),
+            children: [
+              totalPlacements > 0 ? `${totalPlacements} items` : "Items",
+              " ",
+              placementsOpen ? "▲" : "▼",
+            ],
+          }),
+          _jsxs("div", {
+            className: "ml-auto flex items-center gap-2",
+            children: [
+              props.downloadError
+                ? _jsx("span", {
+                    className:
+                      "rounded-lg bg-rose-50 px-2 py-1 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-200",
+                    children: props.downloadError,
+                  })
+                : null,
+              props.downloadMessage
+                ? _jsx("span", {
+                    className:
+                      "rounded-lg bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
+                    children: props.downloadMessage,
+                  })
+                : null,
+              _jsxs("button", {
+                type: "button",
+                className:
+                  "rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300 disabled:opacity-40 dark:border-white/10 dark:text-slate-300",
+                disabled: props.historyLength === 0,
+                onClick: props.onUndo,
+                children: ["Undo", props.historyLength > 0 ? ` (${props.historyLength})` : ""],
+              }),
+              _jsx("button", {
+                type: "button",
+                className:
+                  "rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-white dark:text-slate-900",
+                disabled: !props.canStamp,
+                onClick: props.onStamp,
+                children: props.isStamping ? "Stamping..." : "Stamp & download",
+              }),
+            ],
+          }),
+        ],
+      }),
+      _jsxs("div", {
+        className: "px-3 py-2",
+        children: [
+          props.activeTool === "signature" && _jsx(SignaturePanel, { ...props }),
+          props.activeTool === "text" && _jsx(TextPanel, { ...props }),
+          props.activeTool === "symbol" && _jsx(SymbolPanel, { ...props }),
+          props.activeTool === "pen" && _jsx(PenPanel, { ...props, tool: "pen" }),
+          props.activeTool === "highlighter" && _jsx(PenPanel, { ...props, tool: "highlighter" }),
+        ],
+      }),
+      placementsOpen ? _jsx(PlacementsDrawer, { ...props }) : null,
+    ],
+  });
 };
 /* ── Signature tab ─────────────────────────────────────────── */
-const SignaturePanel = (props) => (_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("button", { type: "button", className: "shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900", onClick: props.onOpenBuilder, children: "+ New" }), props.signatures.length === 0 ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: "Create a signature to unlock placement controls." })) : (_jsx("div", { className: "flex gap-2 overflow-x-auto py-1", children: props.signatures.map((sig) => (_jsxs("div", { className: clsx("flex shrink-0 items-center gap-2 rounded-lg border px-2 py-1.5 transition", props.activeSignatureId === sig.id
-                    ? "border-slate-900 bg-slate-900/90 text-white dark:border-white dark:bg-white/95 dark:text-slate-900"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-white/10 dark:text-slate-200"), children: [_jsxs("button", { type: "button", className: "flex items-center gap-2", onClick: () => props.onSelectSignature(sig.id), children: [_jsx("img", { src: sig.dataUrl, alt: sig.label, className: "h-10 w-16 rounded bg-white object-contain" }), _jsxs("div", { className: "flex flex-col text-left", children: [_jsx("span", { className: "text-xs font-semibold", children: sig.label }), _jsx("span", { className: "text-[0.6rem] text-slate-400", children: formatTimestamp(sig.lastUsedAt ?? sig.createdAt) })] })] }), _jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500", onClick: () => props.onDeleteSignature(sig.id), children: "\u2715" })] }, sig.id))) }))] }));
+const SignaturePanel = (props) =>
+  _jsxs("div", {
+    className: "flex items-center gap-3",
+    children: [
+      _jsx("button", {
+        type: "button",
+        className:
+          "shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900",
+        onClick: props.onOpenBuilder,
+        children: "+ New",
+      }),
+      props.signatures.length === 0
+        ? _jsx("p", {
+            className: "text-sm text-slate-500 dark:text-slate-300",
+            children: "Create a signature to unlock placement controls.",
+          })
+        : _jsx("div", {
+            className: "flex gap-2 overflow-x-auto py-1",
+            children: props.signatures.map((sig) =>
+              _jsxs(
+                "div",
+                {
+                  className: clsx(
+                    "flex shrink-0 items-center gap-2 rounded-lg border px-2 py-1.5 transition",
+                    props.activeSignatureId === sig.id
+                      ? "border-slate-900 bg-slate-900/90 text-white dark:border-white dark:bg-white/95 dark:text-slate-900"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-white/10 dark:text-slate-200",
+                  ),
+                  children: [
+                    _jsxs("button", {
+                      type: "button",
+                      className: "flex items-center gap-2",
+                      onClick: () => props.onSelectSignature(sig.id),
+                      children: [
+                        _jsx("img", {
+                          src: sig.dataUrl,
+                          alt: sig.label,
+                          className: "h-10 w-16 rounded bg-white object-contain",
+                        }),
+                        _jsxs("div", {
+                          className: "flex flex-col text-left",
+                          children: [
+                            _jsx("span", {
+                              className: "text-xs font-semibold",
+                              children: sig.label,
+                            }),
+                            _jsx("span", {
+                              className: "text-[0.6rem] text-slate-400",
+                              children: formatTimestamp(sig.lastUsedAt ?? sig.createdAt),
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                    _jsx("button", {
+                      type: "button",
+                      className:
+                        "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500",
+                      onClick: () => props.onDeleteSignature(sig.id),
+                      children: "\u2715",
+                    }),
+                  ],
+                },
+                sig.id,
+              ),
+            ),
+          }),
+    ],
+  });
 /* ── Text tab ──────────────────────────────────────────────── */
-const TextPanel = (props) => (_jsxs("div", { className: "flex flex-wrap items-start gap-3", children: [_jsxs("div", { className: "min-w-[200px] flex-1", children: [_jsxs("div", { className: "flex items-center gap-2 text-xs text-slate-400", children: [_jsx("span", { className: "font-semibold uppercase tracking-wider", children: "Text content" }), props.isEditingTextPlacement && props.activeTextPlacement ? (_jsxs("span", { className: "font-semibold text-emerald-500", children: ["Editing page ", props.activeTextPlacement.pageNumber] })) : null] }), _jsx("textarea", { value: props.textFormValues.text, onChange: (e) => props.onUpdateTextValue(e.target.value), placeholder: "Type here, then click the PDF to drop it.", className: "mt-1 h-16 w-full resize-none rounded-lg border border-slate-200/70 bg-white/90 px-2 py-1.5 text-sm text-slate-900 outline-none ring-2 ring-transparent transition focus:ring-slate-900/40 dark:border-white/10 dark:bg-slate-900/40 dark:text-white" }), props.textToolError ? (_jsx("p", { className: "mt-1 text-xs text-rose-500", children: props.textToolError })) : null, _jsxs("div", { className: "mt-0.5 flex items-center justify-between text-[0.65rem] text-slate-400", children: [_jsxs("span", { children: [props.textFormValues.text.length, " chars"] }), props.isEditingTextPlacement ? (_jsx("button", { type: "button", className: "font-semibold uppercase tracking-wider text-slate-500", onClick: props.onClearTextSelection, children: "Done editing" })) : null] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsxs("label", { className: "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Size", _jsx("input", { type: "number", min: 8, max: 48, value: props.textFormValues.fontSizePt, onChange: (e) => props.onUpdateTextFontSize(Number(e.target.value) || 0), className: "mt-0.5 w-16 rounded-lg border border-slate-200/70 bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-slate-900/40 dark:text-white" })] }), _jsxs("label", { className: "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Color", _jsx("input", { type: "color", value: props.textFormValues.color, onChange: (e) => props.onUpdateTextColor(e.target.value), className: "mt-0.5 h-8 w-10 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40" })] }), _jsxs("label", { className: "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Width", _jsx("input", { type: "range", min: "0.15", max: "0.9", step: "0.05", value: props.textFormValues.widthPct, onChange: (e) => props.onUpdateTextWidth(parseFloat(e.target.value)), className: "mt-0.5 w-24" }), _jsxs("span", { className: "text-[0.6rem] normal-case text-slate-500", children: [Math.round(props.textFormValues.widthPct * 100), "%"] })] })] }), _jsx("button", { type: "button", className: clsx("shrink-0 self-center rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition", props.activeTool === "text"
-                ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
-                : "border-slate-200 text-slate-500 hover:border-slate-300"), onClick: () => props.onActivateTool("text"), disabled: !props.textDraftHasContent && !props.isEditingTextPlacement, children: props.isEditingTextPlacement
-                ? "Finish editing"
-                : props.activeTool === "text"
-                    ? "Click PDF to place"
-                    : "Use text tool" })] }));
+const TextPanel = (props) =>
+  _jsxs("div", {
+    className: "flex flex-wrap items-start gap-3",
+    children: [
+      _jsxs("div", {
+        className: "min-w-[200px] flex-1",
+        children: [
+          _jsxs("div", {
+            className: "flex items-center gap-2 text-xs text-slate-400",
+            children: [
+              _jsx("span", {
+                className: "font-semibold uppercase tracking-wider",
+                children: "Text content",
+              }),
+              props.isEditingTextPlacement && props.activeTextPlacement
+                ? _jsxs("span", {
+                    className: "font-semibold text-emerald-500",
+                    children: ["Editing page ", props.activeTextPlacement.pageNumber],
+                  })
+                : null,
+            ],
+          }),
+          _jsx("textarea", {
+            value: props.textFormValues.text,
+            onChange: (e) => props.onUpdateTextValue(e.target.value),
+            placeholder: "Type here, then click the PDF to drop it.",
+            className:
+              "mt-1 h-16 w-full resize-none rounded-lg border border-slate-200/70 bg-white/90 px-2 py-1.5 text-sm text-slate-900 outline-none ring-2 ring-transparent transition focus:ring-slate-900/40 dark:border-white/10 dark:bg-slate-900/40 dark:text-white",
+          }),
+          props.textToolError
+            ? _jsx("p", { className: "mt-1 text-xs text-rose-500", children: props.textToolError })
+            : null,
+          _jsxs("div", {
+            className: "mt-0.5 flex items-center justify-between text-[0.65rem] text-slate-400",
+            children: [
+              _jsxs("span", { children: [props.textFormValues.text.length, " chars"] }),
+              props.isEditingTextPlacement
+                ? _jsx("button", {
+                    type: "button",
+                    className: "font-semibold uppercase tracking-wider text-slate-500",
+                    onClick: props.onClearTextSelection,
+                    children: "Done editing",
+                  })
+                : null,
+            ],
+          }),
+        ],
+      }),
+      _jsxs("div", {
+        className: "flex flex-wrap items-center gap-2",
+        children: [
+          _jsxs("label", {
+            className:
+              "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+            children: [
+              "Size",
+              _jsx("input", {
+                type: "number",
+                min: 8,
+                max: 48,
+                value: props.textFormValues.fontSizePt,
+                onChange: (e) => props.onUpdateTextFontSize(Number(e.target.value) || 0),
+                className:
+                  "mt-0.5 w-16 rounded-lg border border-slate-200/70 bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-slate-900/40 dark:text-white",
+              }),
+            ],
+          }),
+          _jsxs("label", {
+            className:
+              "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+            children: [
+              "Color",
+              _jsx("input", {
+                type: "color",
+                value: props.textFormValues.color,
+                onChange: (e) => props.onUpdateTextColor(e.target.value),
+                className:
+                  "mt-0.5 h-8 w-10 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40",
+              }),
+            ],
+          }),
+          _jsxs("label", {
+            className:
+              "flex flex-col text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+            children: [
+              "Width",
+              _jsx("input", {
+                type: "range",
+                min: "0.15",
+                max: "0.9",
+                step: "0.05",
+                value: props.textFormValues.widthPct,
+                onChange: (e) => props.onUpdateTextWidth(parseFloat(e.target.value)),
+                className: "mt-0.5 w-24",
+              }),
+              _jsxs("span", {
+                className: "text-[0.6rem] normal-case text-slate-500",
+                children: [Math.round(props.textFormValues.widthPct * 100), "%"],
+              }),
+            ],
+          }),
+        ],
+      }),
+      _jsx("button", {
+        type: "button",
+        className: clsx(
+          "shrink-0 self-center rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
+          props.activeTool === "text"
+            ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
+            : "border-slate-200 text-slate-500 hover:border-slate-300",
+        ),
+        onClick: () => props.onActivateTool("text"),
+        disabled: !props.textDraftHasContent && !props.isEditingTextPlacement,
+        children: props.isEditingTextPlacement
+          ? "Finish editing"
+          : props.activeTool === "text"
+            ? "Click PDF to place"
+            : "Use text tool",
+      }),
+    ],
+  });
 /* ── Symbol tab ────────────────────────────────────────────── */
-const SymbolPanel = (props) => (_jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [_jsx("div", { className: "flex flex-wrap gap-1.5", children: SYMBOL_PRESETS.map((preset) => (_jsx("button", { type: "button", className: clsx("rounded-lg border px-2.5 py-1 text-lg transition", props.symbolPreset.id === preset.id
-                    ? "border-sky-500 bg-sky-500/10 text-sky-600 dark:border-sky-400 dark:text-sky-200"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-white/10 dark:text-slate-200"), onClick: () => props.onSetSymbolPreset(preset), title: preset.label, children: preset.glyph }, preset.id))) }), _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }), _jsxs("label", { className: "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Size", _jsx("input", { type: "range", min: 12, max: 40, step: 1, value: props.symbolSize, onChange: (e) => props.onSetSymbolSize(parseFloat(e.target.value)), className: "w-20" }), _jsxs("span", { className: "text-[0.6rem] normal-case text-slate-500", children: [props.symbolSize, "pt"] })] }), _jsxs("label", { className: "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Color", _jsx("input", { type: "color", value: props.symbolColor, onChange: (e) => props.onSetSymbolColor(e.target.value), className: "h-7 w-8 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40" })] }), _jsx("span", { className: "text-xs text-slate-400", children: "Click the PDF to drop the symbol." })] }));
+const SymbolPanel = (props) =>
+  _jsxs("div", {
+    className: "flex flex-wrap items-center gap-3",
+    children: [
+      _jsx("div", {
+        className: "flex flex-wrap gap-1.5",
+        children: SYMBOL_PRESETS.map((preset) =>
+          _jsx(
+            "button",
+            {
+              type: "button",
+              className: clsx(
+                "rounded-lg border px-2.5 py-1 text-lg transition",
+                props.symbolPreset.id === preset.id
+                  ? "border-sky-500 bg-sky-500/10 text-sky-600 dark:border-sky-400 dark:text-sky-200"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-white/10 dark:text-slate-200",
+              ),
+              onClick: () => props.onSetSymbolPreset(preset),
+              title: preset.label,
+              children: preset.glyph,
+            },
+            preset.id,
+          ),
+        ),
+      }),
+      _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }),
+      _jsxs("label", {
+        className:
+          "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+        children: [
+          "Size",
+          _jsx("input", {
+            type: "range",
+            min: 12,
+            max: 40,
+            step: 1,
+            value: props.symbolSize,
+            onChange: (e) => props.onSetSymbolSize(parseFloat(e.target.value)),
+            className: "w-20",
+          }),
+          _jsxs("span", {
+            className: "text-[0.6rem] normal-case text-slate-500",
+            children: [props.symbolSize, "pt"],
+          }),
+        ],
+      }),
+      _jsxs("label", {
+        className:
+          "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+        children: [
+          "Color",
+          _jsx("input", {
+            type: "color",
+            value: props.symbolColor,
+            onChange: (e) => props.onSetSymbolColor(e.target.value),
+            className:
+              "h-7 w-8 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40",
+          }),
+        ],
+      }),
+      _jsx("span", {
+        className: "text-xs text-slate-400",
+        children: "Click the PDF to drop the symbol.",
+      }),
+    ],
+  });
 /* ── Pen / Highlighter tab ─────────────────────────────────── */
-const PenPanel = (props) => (_jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [_jsx("span", { className: "text-xs text-slate-500 dark:text-slate-300", children: props.tool === "highlighter"
-                ? "Draw translucent highlights directly on the page."
-                : "Draw freehand strokes directly on the page." }), _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }), _jsxs("label", { className: "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Width", _jsx("input", { type: "range", min: 1, max: 12, step: 1, value: props.penWidth, onChange: (e) => props.onSetPenWidth(Number(e.target.value)), className: "w-20" }), _jsxs("span", { className: "text-[0.6rem] normal-case text-slate-500", children: [props.penWidth, "px"] })] }), _jsxs("label", { className: "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Color", _jsx("input", { type: "color", value: props.penColor, onChange: (e) => props.onSetPenColor(e.target.value), className: "h-7 w-8 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40" })] }), props.strokes.length > 0 ? (_jsx("button", { type: "button", className: "rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300", onClick: props.onClearStrokes, children: "Clear all strokes" })) : null] }));
+const PenPanel = (props) =>
+  _jsxs("div", {
+    className: "flex flex-wrap items-center gap-3",
+    children: [
+      _jsx("span", {
+        className: "text-xs text-slate-500 dark:text-slate-300",
+        children:
+          props.tool === "highlighter"
+            ? "Draw translucent highlights directly on the page."
+            : "Draw freehand strokes directly on the page.",
+      }),
+      _jsx("div", { className: "mx-1 hidden h-6 w-px bg-slate-200 dark:bg-white/10 sm:block" }),
+      _jsxs("label", {
+        className:
+          "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+        children: [
+          "Width",
+          _jsx("input", {
+            type: "range",
+            min: 1,
+            max: 12,
+            step: 1,
+            value: props.penWidth,
+            onChange: (e) => props.onSetPenWidth(Number(e.target.value)),
+            className: "w-20",
+          }),
+          _jsxs("span", {
+            className: "text-[0.6rem] normal-case text-slate-500",
+            children: [props.penWidth, "px"],
+          }),
+        ],
+      }),
+      _jsxs("label", {
+        className:
+          "flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+        children: [
+          "Color",
+          _jsx("input", {
+            type: "color",
+            value: props.penColor,
+            onChange: (e) => props.onSetPenColor(e.target.value),
+            className:
+              "h-7 w-8 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40",
+          }),
+        ],
+      }),
+      props.strokes.length > 0
+        ? _jsx("button", {
+            type: "button",
+            className:
+              "rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 transition hover:border-slate-300",
+            onClick: props.onClearStrokes,
+            children: "Clear all strokes",
+          })
+        : null,
+    ],
+  });
 /* ── Placements drawer ─────────────────────────────────────── */
 const PlacementsDrawer = (props) => {
-    const strokesOnPage = props.strokes.filter((s) => s.pageNumber === props.currentPage);
-    return (_jsx("div", { className: "max-h-[240px] overflow-y-auto border-t border-slate-200/70 px-3 py-2 dark:border-white/10", children: _jsxs("div", { className: "grid gap-3 sm:grid-cols-3", children: [_jsxs("div", { children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("h4", { className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: "Signatures" }), props.placements.length > 0 ? (_jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-slate-400", onClick: props.onClearAllPlacements, children: "Clear" })) : null] }), props.placements.length === 0 ? (_jsx("p", { className: "mt-1 text-xs text-slate-400", children: "No signature placements yet." })) : (_jsx("ul", { className: "mt-1 space-y-1", "data-testid": "placements-list", children: props.placements.map((p) => {
-                                const sig = props.signatureMap.get(p.signatureId);
-                                return (_jsxs("li", { className: clsx("flex items-center justify-between rounded-lg border px-2 py-1 text-xs", p.id === props.selectedPlacementId
-                                        ? "border-indigo-500 bg-indigo-50/80 dark:border-indigo-400 dark:bg-indigo-500/10"
-                                        : "border-slate-200 dark:border-white/10"), children: [_jsxs("button", { type: "button", className: "flex flex-col text-left", onClick: () => props.onSelectPlacement(p.id, p.pageNumber), children: [_jsx("span", { className: "font-semibold text-slate-700 dark:text-white", children: sig?.label ?? "Missing" }), _jsxs("span", { className: "text-[0.6rem] text-slate-400", children: ["Page ", p.pageNumber] })] }), _jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500", onClick: () => props.onDeletePlacement(p.id), children: "\u2715" })] }, p.id));
-                            }) }))] }), _jsxs("div", { children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("h4", { className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: "Text & symbols" }), props.textPlacements.length > 0 ? (_jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-slate-400", onClick: props.onClearAllTextPlacements, children: "Clear" })) : null] }), props.textPlacements.length === 0 ? (_jsx("p", { className: "mt-1 text-xs text-slate-400", children: "No text placements yet." })) : (_jsx("ul", { className: "mt-1 space-y-1", "data-testid": "text-placements-list", children: props.textPlacements.map((tp) => {
-                                const preview = tp.text.trim() || "(Empty)";
-                                const truncated = preview.length > 24 ? `${preview.slice(0, 21)}...` : preview;
-                                return (_jsxs("li", { className: clsx("flex items-center justify-between rounded-lg border px-2 py-1 text-xs", tp.id === props.selectedTextId
-                                        ? "border-emerald-500 bg-emerald-50/80 dark:border-emerald-400 dark:bg-emerald-500/10"
-                                        : "border-slate-200 dark:border-white/10"), children: [_jsxs("button", { type: "button", className: "flex flex-col text-left", title: preview, onClick: () => props.onSelectTextPlacement(tp.id, tp.pageNumber), children: [_jsx("span", { className: "font-semibold text-slate-700 dark:text-white", children: truncated }), _jsxs("span", { className: "text-[0.6rem] text-slate-400", children: ["Page ", tp.pageNumber] })] }), _jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500", onClick: () => props.onDeleteTextPlacement(tp.id), children: "\u2715" })] }, tp.id));
-                            }) }))] }), _jsxs("div", { children: [_jsxs("h4", { className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400", children: ["Strokes (page ", props.currentPage, ")"] }), strokesOnPage.length === 0 ? (_jsx("p", { className: "mt-1 text-xs text-slate-400", children: "No strokes on this page." })) : (_jsx("ul", { className: "mt-1 space-y-1", children: strokesOnPage.map((stroke, i) => (_jsxs("li", { className: "flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-white/10", children: [_jsxs("span", { className: "flex items-center gap-1.5", children: [_jsx("span", { className: "inline-block h-2.5 w-2.5 rounded-full", style: { backgroundColor: stroke.color, opacity: stroke.opacity } }), _jsxs("span", { className: "text-slate-600 dark:text-slate-300", children: [stroke.tool === "highlighter" ? "Highlight" : "Stroke", " ", i + 1] })] }), _jsx("button", { type: "button", className: "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500", onClick: () => props.onDeleteStroke(stroke.id), children: "\u2715" })] }, stroke.id))) }))] })] }) }));
+  const strokesOnPage = props.strokes.filter((s) => s.pageNumber === props.currentPage);
+  return _jsx("div", {
+    className:
+      "max-h-[240px] overflow-y-auto border-t border-slate-200/70 px-3 py-2 dark:border-white/10",
+    children: _jsxs("div", {
+      className: "grid gap-3 sm:grid-cols-3",
+      children: [
+        _jsxs("div", {
+          children: [
+            _jsxs("div", {
+              className: "flex items-center justify-between",
+              children: [
+                _jsx("h4", {
+                  className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+                  children: "Signatures",
+                }),
+                props.placements.length > 0
+                  ? _jsx("button", {
+                      type: "button",
+                      className:
+                        "text-[0.6rem] font-semibold uppercase tracking-widest text-slate-400",
+                      onClick: props.onClearAllPlacements,
+                      children: "Clear",
+                    })
+                  : null,
+              ],
+            }),
+            props.placements.length === 0
+              ? _jsx("p", {
+                  className: "mt-1 text-xs text-slate-400",
+                  children: "No signature placements yet.",
+                })
+              : _jsx("ul", {
+                  className: "mt-1 space-y-1",
+                  "data-testid": "placements-list",
+                  children: props.placements.map((p) => {
+                    const sig = props.signatureMap.get(p.signatureId);
+                    return _jsxs(
+                      "li",
+                      {
+                        className: clsx(
+                          "flex items-center justify-between rounded-lg border px-2 py-1 text-xs",
+                          p.id === props.selectedPlacementId
+                            ? "border-indigo-500 bg-indigo-50/80 dark:border-indigo-400 dark:bg-indigo-500/10"
+                            : "border-slate-200 dark:border-white/10",
+                        ),
+                        children: [
+                          _jsxs("button", {
+                            type: "button",
+                            className: "flex flex-col text-left",
+                            onClick: () => props.onSelectPlacement(p.id, p.pageNumber),
+                            children: [
+                              _jsx("span", {
+                                className: "font-semibold text-slate-700 dark:text-white",
+                                children: sig?.label ?? "Missing",
+                              }),
+                              _jsxs("span", {
+                                className: "text-[0.6rem] text-slate-400",
+                                children: ["Page ", p.pageNumber],
+                              }),
+                            ],
+                          }),
+                          _jsx("button", {
+                            type: "button",
+                            className:
+                              "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500",
+                            onClick: () => props.onDeletePlacement(p.id),
+                            children: "\u2715",
+                          }),
+                        ],
+                      },
+                      p.id,
+                    );
+                  }),
+                }),
+          ],
+        }),
+        _jsxs("div", {
+          children: [
+            _jsxs("div", {
+              className: "flex items-center justify-between",
+              children: [
+                _jsx("h4", {
+                  className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+                  children: "Text & symbols",
+                }),
+                props.textPlacements.length > 0
+                  ? _jsx("button", {
+                      type: "button",
+                      className:
+                        "text-[0.6rem] font-semibold uppercase tracking-widest text-slate-400",
+                      onClick: props.onClearAllTextPlacements,
+                      children: "Clear",
+                    })
+                  : null,
+              ],
+            }),
+            props.textPlacements.length === 0
+              ? _jsx("p", {
+                  className: "mt-1 text-xs text-slate-400",
+                  children: "No text placements yet.",
+                })
+              : _jsx("ul", {
+                  className: "mt-1 space-y-1",
+                  "data-testid": "text-placements-list",
+                  children: props.textPlacements.map((tp) => {
+                    const preview = tp.text.trim() || "(Empty)";
+                    const truncated = preview.length > 24 ? `${preview.slice(0, 21)}...` : preview;
+                    return _jsxs(
+                      "li",
+                      {
+                        className: clsx(
+                          "flex items-center justify-between rounded-lg border px-2 py-1 text-xs",
+                          tp.id === props.selectedTextId
+                            ? "border-emerald-500 bg-emerald-50/80 dark:border-emerald-400 dark:bg-emerald-500/10"
+                            : "border-slate-200 dark:border-white/10",
+                        ),
+                        children: [
+                          _jsxs("button", {
+                            type: "button",
+                            className: "flex flex-col text-left",
+                            title: preview,
+                            onClick: () => props.onSelectTextPlacement(tp.id, tp.pageNumber),
+                            children: [
+                              _jsx("span", {
+                                className: "font-semibold text-slate-700 dark:text-white",
+                                children: truncated,
+                              }),
+                              _jsxs("span", {
+                                className: "text-[0.6rem] text-slate-400",
+                                children: ["Page ", tp.pageNumber],
+                              }),
+                            ],
+                          }),
+                          _jsx("button", {
+                            type: "button",
+                            className:
+                              "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500",
+                            onClick: () => props.onDeleteTextPlacement(tp.id),
+                            children: "\u2715",
+                          }),
+                        ],
+                      },
+                      tp.id,
+                    );
+                  }),
+                }),
+          ],
+        }),
+        _jsxs("div", {
+          children: [
+            _jsxs("h4", {
+              className: "text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400",
+              children: ["Strokes (page ", props.currentPage, ")"],
+            }),
+            strokesOnPage.length === 0
+              ? _jsx("p", {
+                  className: "mt-1 text-xs text-slate-400",
+                  children: "No strokes on this page.",
+                })
+              : _jsx("ul", {
+                  className: "mt-1 space-y-1",
+                  children: strokesOnPage.map((stroke, i) =>
+                    _jsxs(
+                      "li",
+                      {
+                        className:
+                          "flex items-center justify-between rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-white/10",
+                        children: [
+                          _jsxs("span", {
+                            className: "flex items-center gap-1.5",
+                            children: [
+                              _jsx("span", {
+                                className: "inline-block h-2.5 w-2.5 rounded-full",
+                                style: { backgroundColor: stroke.color, opacity: stroke.opacity },
+                              }),
+                              _jsxs("span", {
+                                className: "text-slate-600 dark:text-slate-300",
+                                children: [
+                                  stroke.tool === "highlighter" ? "Highlight" : "Stroke",
+                                  " ",
+                                  i + 1,
+                                ],
+                              }),
+                            ],
+                          }),
+                          _jsx("button", {
+                            type: "button",
+                            className:
+                              "text-[0.6rem] font-semibold uppercase tracking-widest text-rose-500",
+                            onClick: () => props.onDeleteStroke(stroke.id),
+                            children: "\u2715",
+                          }),
+                        ],
+                      },
+                      stroke.id,
+                    ),
+                  ),
+                }),
+          ],
+        }),
+      ],
+    }),
+  });
 };
 export default SignatureRibbon;

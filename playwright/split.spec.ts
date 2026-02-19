@@ -78,9 +78,7 @@ test.describe("Split E2E", () => {
     const downloadPath = await download.path();
     expect(downloadPath).toBeTruthy();
 
-    await expect(
-      page.getByText(/Exported 2 slice\(s\) with 2-page preset/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Exported 2 slice\(s\) with 2-page preset/i)).toBeVisible();
   });
 
   test("can select only odd pages before downloading", async ({ page }, testInfo) => {

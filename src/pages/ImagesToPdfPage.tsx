@@ -495,6 +495,7 @@ const ImagesToPdfPage = () => {
             return (
               <label
                 key={option.id}
+                aria-label={option.label}
                 className={clsx(
                   "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
                   presetId === option.id
@@ -556,6 +557,7 @@ const ImagesToPdfPage = () => {
                 return (
                   <label
                     key={option.id}
+                    aria-label={option.label}
                     className={clsx(
                       "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3",
                       fitMode === option.id

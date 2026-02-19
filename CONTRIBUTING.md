@@ -34,15 +34,15 @@ npm run dev
 
 ## Scripts
 
-| Command | When to use |
-|---|---|
-| `npm run dev` | Local development |
-| `npm run build` | Verify the production build passes type-check |
-| `npm run lint` | Check ESLint rules (runs in CI) |
-| `npm run test` | Run unit tests |
-| `npm run test:watch` | Unit tests in watch mode while developing |
-| `npm run test:e2e` | Full Playwright E2E suite |
-| `npm run format` | Auto-format with Prettier |
+| Command              | When to use                                   |
+| -------------------- | --------------------------------------------- |
+| `npm run dev`        | Local development                             |
+| `npm run build`      | Verify the production build passes type-check |
+| `npm run lint`       | Check ESLint rules (runs in CI)               |
+| `npm run test`       | Run unit tests                                |
+| `npm run test:watch` | Unit tests in watch mode while developing     |
+| `npm run test:e2e`   | Full Playwright E2E suite                     |
+| `npm run format`     | Auto-format with Prettier                     |
 
 ---
 
@@ -60,6 +60,7 @@ npm run dev
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a full description of the directory structure, data flow, and key modules.
 
 Short version:
+
 - **`src/lib/`** — pure functions for PDF operations (no React)
 - **`src/pages/`** — one component per tool, owns local state, calls `lib/`
 - **`src/components/`** — shared UI (AppShell, Alert, Button, DropZone, modals)

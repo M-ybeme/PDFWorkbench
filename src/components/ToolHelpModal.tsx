@@ -62,7 +62,10 @@ const ToolHelpModal = ({ toolId, onClose }: Props) => {
         {/* Features */}
         <ul className="mt-4 space-y-2">
           {content.features.map((f) => (
-            <li key={f} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+            <li
+              key={f}
+              className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200"
+            >
               <span
                 className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400 dark:bg-slate-500"
                 aria-hidden="true"
@@ -80,10 +83,7 @@ const ToolHelpModal = ({ toolId, onClose }: Props) => {
             </p>
             <dl className="space-y-1">
               {content.shortcuts.map((s) => (
-                <div
-                  key={s.keys}
-                  className="flex items-center justify-between gap-4 text-sm"
-                >
+                <div key={s.keys} className="flex items-center justify-between gap-4 text-sm">
                   <dd className="text-slate-600 dark:text-slate-300">{s.description}</dd>
                   <dt>
                     <kbd className="rounded-md border border-slate-200 bg-white px-2 py-0.5 font-mono text-xs text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">

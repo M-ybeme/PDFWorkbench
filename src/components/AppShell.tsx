@@ -21,9 +21,7 @@ const AppShell = () => {
   const [helpToolId, setHelpToolId] = useState<string | null>(null);
 
   const location = useLocation();
-  const activeToolForMobile = toolRoutes.find(
-    (tool) => location.pathname === `/${tool.path}`,
-  );
+  const activeToolForMobile = toolRoutes.find((tool) => location.pathname === `/${tool.path}`);
 
   const shortcuts = useMemo(
     () => [
@@ -212,10 +210,7 @@ const AppShell = () => {
         </main>
       </div>
 
-      <footer
-        className="border-t border-slate-200/60 py-5 dark:border-white/10"
-        role="contentinfo"
-      >
+      <footer className="border-t border-slate-200/60 py-5 dark:border-white/10" role="contentinfo">
         <div
           className={clsx(
             "mx-auto px-4",
