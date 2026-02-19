@@ -3,337 +3,36 @@ import { Link } from "react-router-dom";
 import { toolRoutes } from "../data/toolRoutes";
 import { useActivityLog } from "../state/activityLog";
 const badgeStyles = {
-  viewer: "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-200",
-  merge: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200",
-  "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
-  "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
-  "page-edit": "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
-  "images-to-pdf": "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-200",
-  compression: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-100",
-  signatures: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-100",
-  "pdf-to-images": "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-200",
+    viewer: "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-200",
+    merge: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200",
+    "split-selection": "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
+    "split-preset": "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200",
+    "page-edit": "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-200",
+    "images-to-pdf": "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-200",
+    compression: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-100",
+    signatures: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-100",
+    "pdf-to-images": "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-200",
 };
 const badgeLabels = {
-  viewer: "Viewer export",
-  merge: "Merge",
-  "split-selection": "Split selection",
-  "split-preset": "Split bundle",
-  "page-edit": "Page edits",
-  "images-to-pdf": "Images → PDF",
-  compression: "Compression",
-  signatures: "Signatures",
-  "pdf-to-images": "PDF → Images",
+    viewer: "Viewer export",
+    merge: "Merge",
+    "split-selection": "Split selection",
+    "split-preset": "Split bundle",
+    "page-edit": "Page edits",
+    "images-to-pdf": "Images → PDF",
+    compression: "Compression",
+    signatures: "Signatures",
+    "pdf-to-images": "PDF → Images",
 };
-const formatActivityTime = (timestamp) =>
-  new Intl.DateTimeFormat(undefined, {
+const formatActivityTime = (timestamp) => new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(timestamp);
+}).format(timestamp);
 const LandingPage = () => {
-  const entries = useActivityLog((state) => state.entries);
-  const clearActivity = useActivityLog((state) => state.clear);
-  const upcomingTools = toolRoutes.filter((tool) => tool.status === "upcoming");
-  const featuredUpcoming = upcomingTools.slice(0, 3);
-  return _jsxs("div", {
-    className: "space-y-12",
-    children: [
-      _jsxs("section", {
-        className:
-          "gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50",
-        children: [
-          _jsxs("p", {
-            className:
-              "mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300",
-            children: [
-              "Phase 0.8.5",
-              _jsx("span", { className: "h-2 w-2 rounded-full bg-emerald-400" }),
-              "Live",
-            ],
-          }),
-          _jsx("h1", {
-            className:
-              "font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl",
-            children:
-              "View, merge, split, edit, compress, and export PDFs\u2014entirely in your browser.",
-          }),
-          _jsx("p", {
-            className: "mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300",
-            children:
-              "PDF Workbench is a complete client-side PDF toolkit. Load files, merge stacks, split by selection or preset, reorder/rotate/delete pages, convert images to PDF, compress downloads, stamp visual signatures, search text with Ctrl+F, and export pages as images\u2014entirely offline.",
-          }),
-          _jsx("p", {
-            className: "mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400",
-            children:
-              "New in 0.8.5: PDF \u2192 Images export with format/scale/quality controls, and in-viewer text search with match navigation. Plus full keyboard accessibility and skip-to-content support.",
-          }),
-          _jsxs("div", {
-            className: "mt-8 flex flex-wrap gap-4",
-            children: [
-              _jsx(Link, {
-                to: "/pdf-to-images",
-                className:
-                  "inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900",
-                children: "Try PDF \u2192 Images \u2192",
-              }),
-              _jsx(Link, {
-                to: "/viewer",
-                className:
-                  "inline-flex items-center gap-3 rounded-full border border-slate-900/20 px-6 py-3 text-slate-700 transition hover:border-slate-900 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/30 dark:text-slate-200",
-                children: "Open PDF Viewer",
-              }),
-            ],
-          }),
-          _jsxs("dl", {
-            className:
-              "mt-10 grid grid-cols-1 gap-6 text-sm uppercase tracking-[0.3em] text-slate-500 md:grid-cols-3",
-            children: [
-              _jsxs("div", {
-                children: [
-                  _jsx("dt", { children: "Stack" }),
-                  _jsx("dd", {
-                    className:
-                      "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white",
-                    children: "React + Vite + TS",
-                  }),
-                ],
-              }),
-              _jsxs("div", {
-                children: [
-                  _jsx("dt", { children: "Design System" }),
-                  _jsx("dd", {
-                    className:
-                      "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white",
-                    children: "Tailwind + Custom Themes",
-                  }),
-                ],
-              }),
-              _jsxs("div", {
-                children: [
-                  _jsx("dt", { children: "Automation" }),
-                  _jsx("dd", {
-                    className:
-                      "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white",
-                    children: "ESLint \u00B7 Vitest \u00B7 CI",
-                  }),
-                ],
-              }),
-            ],
-          }),
-        ],
-      }),
-      _jsxs("section", {
-        className: "grid gap-6 lg:grid-cols-2",
-        children: [
-          _jsxs("article", {
-            className:
-              "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70",
-            children: [
-              _jsx("p", {
-                className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400",
-                children: "Phase 0.8.5",
-              }),
-              _jsx("h2", {
-                className:
-                  "mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white",
-                children: "What\u2019s live right now?",
-              }),
-              _jsxs("ul", {
-                className: "mt-6 space-y-4 text-sm text-slate-600 dark:text-slate-300",
-                children: [
-                  _jsx("li", {
-                    children:
-                      "\u2705 PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Merge workspace to stack, reorder, and download multi-file bundles instantly",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Split workspace with selectable tiles, custom exports, and every-N ZIP bundles",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Page editor with drag-to-reorder, rotate/delete controls, and undo history",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Images\u2192PDF studio with layout presets, PNG integrity guard, and instant downloads",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Compression with three quality presets (High/Balanced/Smallest) and real-time size reporting",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Signatures workspace with draw/type/upload modes, draggable placements, and local stamp history",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 PDF \u2192 Images export with PNG/JPEG format, 1x\u20133x scale, quality slider, and ZIP bundling",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 In-viewer text search (Ctrl+F) with match count, navigation, and page jumping",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 Keyboard accessibility: Ctrl+O, arrow nav, zoom shortcuts, skip link, focus trapping, and ARIA roles across all modals",
-                  }),
-                  _jsx("li", {
-                    children:
-                      "\u2705 138 unit tests, Playwright E2E coverage, password prompts, activity log, and light/dark theming",
-                  }),
-                ],
-              }),
-            ],
-          }),
-          _jsxs("article", {
-            className:
-              "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70",
-            children: [
-              _jsx("p", {
-                className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400",
-                children: "Next Tracks",
-              }),
-              _jsx("h2", {
-                className:
-                  "mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white",
-                children: "Upcoming tool drops",
-              }),
-              _jsx("div", {
-                className: "mt-6 space-y-5",
-                children:
-                  featuredUpcoming.length > 0
-                    ? featuredUpcoming.map((tool) =>
-                        _jsxs(
-                          "div",
-                          {
-                            className:
-                              "rounded-2xl border border-slate-200/50 p-4 dark:border-white/10",
-                            children: [
-                              _jsxs("div", {
-                                className:
-                                  "flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400",
-                                children: [
-                                  _jsx("span", { children: tool.eta }),
-                                  _jsx("span", { children: tool.version }),
-                                ],
-                              }),
-                              _jsx("p", {
-                                className:
-                                  "mt-2 text-lg font-semibold text-slate-900 dark:text-white",
-                                children: tool.label,
-                              }),
-                              _jsx("p", {
-                                className: "text-sm text-slate-600 dark:text-slate-300",
-                                children: tool.summary,
-                              }),
-                            ],
-                          },
-                          tool.id,
-                        ),
-                      )
-                    : _jsx("p", {
-                        className:
-                          "rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400",
-                        children:
-                          "0.9.0 shifts to hardening: test coverage, error boundaries, friendly error messages, and documentation ahead of the stable 1.0 release.",
-                      }),
-              }),
-            ],
-          }),
-        ],
-      }),
-      _jsxs("section", {
-        className:
-          "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70",
-        children: [
-          _jsxs("div", {
-            className: "flex flex-wrap items-center justify-between gap-4",
-            children: [
-              _jsxs("div", {
-                children: [
-                  _jsx("p", {
-                    className:
-                      "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400",
-                    children: "Workspace pulse",
-                  }),
-                  _jsx("h2", {
-                    className:
-                      "mt-2 font-display text-2xl font-semibold text-slate-900 dark:text-white",
-                    children: "Recent activity",
-                  }),
-                ],
-              }),
-              _jsx("button", {
-                type: "button",
-                className:
-                  "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300",
-                onClick: clearActivity,
-                disabled: entries.length === 0,
-                children: "Clear log",
-              }),
-            ],
-          }),
-          entries.length === 0
-            ? _jsx("p", {
-                className: "mt-6 text-sm text-slate-500 dark:text-slate-300",
-                children:
-                  "Interact with the merge or split workspaces to populate this feed. We keep the last dozen actions locally so you can see what shipped most recently.",
-              })
-            : _jsx("ul", {
-                className: "mt-6 space-y-4",
-                children: entries
-                  .slice(0, 6)
-                  .map((entry) =>
-                    _jsxs(
-                      "li",
-                      {
-                        className:
-                          "rounded-2xl border border-slate-200/60 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:text-slate-200",
-                        children: [
-                          _jsxs("div", {
-                            className: "flex flex-wrap items-center justify-between gap-3",
-                            children: [
-                              _jsx("span", {
-                                className: `inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badgeStyles[entry.type]}`,
-                                children: badgeLabels[entry.type],
-                              }),
-                              _jsx("span", {
-                                className: "text-xs text-slate-400 dark:text-slate-500",
-                                children: formatActivityTime(entry.timestamp),
-                              }),
-                            ],
-                          }),
-                          _jsx("p", {
-                            className:
-                              "mt-2 text-base font-semibold text-slate-900 dark:text-white",
-                            children: entry.label,
-                          }),
-                          entry.detail
-                            ? _jsx("p", {
-                                className: "text-sm text-slate-500 dark:text-slate-300",
-                                children: entry.detail,
-                              })
-                            : null,
-                        ],
-                      },
-                      entry.id,
-                    ),
-                  ),
-              }),
-        ],
-      }),
-      _jsx("section", {
-        className:
-          "rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400",
-        children: _jsx("p", {
-          children:
-            "Your files never leave your device. PDF Workbench processes everything in-browser using pdf.js for rendering and pdf-lib for manipulation. No uploads, no server round-trips.",
-        }),
-      }),
-    ],
-  });
+    const entries = useActivityLog((state) => state.entries);
+    const clearActivity = useActivityLog((state) => state.clear);
+    const upcomingTools = toolRoutes.filter((tool) => tool.status === "upcoming");
+    const featuredUpcoming = upcomingTools.slice(0, 3);
+    return (_jsxs("div", { className: "space-y-12", children: [_jsxs("section", { className: "gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50", children: [_jsxs("p", { className: "mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300", children: ["Phase 0.8.5", _jsx("span", { className: "h-2 w-2 rounded-full bg-emerald-400" }), "Live"] }), _jsx("h1", { className: "font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl", children: "View, merge, split, edit, compress, and export PDFs\u2014entirely in your browser." }), _jsx("p", { className: "mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-300", children: "PDF Workbench is a complete client-side PDF toolkit. Load files, merge stacks, split by selection or preset, reorder/rotate/delete pages, convert images to PDF, compress downloads, stamp visual signatures, search text with Ctrl+F, and export pages as images\u2014entirely offline." }), _jsx("p", { className: "mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400", children: "New in 0.8.5: PDF \u2192 Images export with format/scale/quality controls, and in-viewer text search with match navigation. Plus full keyboard accessibility and skip-to-content support." }), _jsxs("div", { className: "mt-8 flex flex-wrap gap-4", children: [_jsx(Link, { to: "/pdf-to-images", className: "inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900", children: "Try PDF \u2192 Images \u2192" }), _jsx(Link, { to: "/viewer", className: "inline-flex items-center gap-3 rounded-full border border-slate-900/20 px-6 py-3 text-slate-700 transition hover:border-slate-900 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/30 dark:text-slate-200", children: "Open PDF Viewer" })] }), _jsxs("dl", { className: "mt-10 grid grid-cols-1 gap-6 text-sm uppercase tracking-[0.3em] text-slate-500 md:grid-cols-3", children: [_jsxs("div", { children: [_jsx("dt", { children: "Stack" }), _jsx("dd", { className: "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white", children: "React + Vite + TS" })] }), _jsxs("div", { children: [_jsx("dt", { children: "Design System" }), _jsx("dd", { className: "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white", children: "Tailwind + Custom Themes" })] }), _jsxs("div", { children: [_jsx("dt", { children: "Automation" }), _jsx("dd", { className: "text-2xl font-semibold normal-case tracking-normal text-slate-900 dark:text-white", children: "ESLint \u00B7 Vitest \u00B7 CI" })] })] })] }), _jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [_jsxs("article", { className: "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70", children: [_jsx("p", { className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400", children: "Phase 0.8.5" }), _jsx("h2", { className: "mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white", children: "What\u2019s live right now?" }), _jsxs("ul", { className: "mt-6 space-y-4 text-sm text-slate-600 dark:text-slate-300", children: [_jsx("li", { children: "\u2705 PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail" }), _jsx("li", { children: "\u2705 Merge workspace to stack, reorder, and download multi-file bundles instantly" }), _jsx("li", { children: "\u2705 Split workspace with selectable tiles, custom exports, and every-N ZIP bundles" }), _jsx("li", { children: "\u2705 Page editor with drag-to-reorder, rotate/delete controls, and undo history" }), _jsx("li", { children: "\u2705 Images\u2192PDF studio with layout presets, PNG integrity guard, and instant downloads" }), _jsx("li", { children: "\u2705 Compression with three quality presets (High/Balanced/Smallest) and real-time size reporting" }), _jsx("li", { children: "\u2705 Signatures workspace with draw/type/upload modes, draggable placements, and local stamp history" }), _jsx("li", { children: "\u2705 PDF \u2192 Images export with PNG/JPEG format, 1x\u20133x scale, quality slider, and ZIP bundling" }), _jsx("li", { children: "\u2705 In-viewer text search (Ctrl+F) with match count, navigation, and page jumping" }), _jsx("li", { children: "\u2705 Keyboard accessibility: Ctrl+O, arrow nav, zoom shortcuts, skip link, focus trapping, and ARIA roles across all modals" }), _jsx("li", { children: "\u2705 138 unit tests, Playwright E2E coverage, password prompts, activity log, and light/dark theming" })] })] }), _jsxs("article", { className: "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70", children: [_jsx("p", { className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400", children: "Next Tracks" }), _jsx("h2", { className: "mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white", children: "Upcoming tool drops" }), _jsx("div", { className: "mt-6 space-y-5", children: featuredUpcoming.length > 0 ? (featuredUpcoming.map((tool) => (_jsxs("div", { className: "rounded-2xl border border-slate-200/50 p-4 dark:border-white/10", children: [_jsxs("div", { className: "flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400", children: [_jsx("span", { children: tool.eta }), _jsx("span", { children: tool.version })] }), _jsx("p", { className: "mt-2 text-lg font-semibold text-slate-900 dark:text-white", children: tool.label }), _jsx("p", { className: "text-sm text-slate-600 dark:text-slate-300", children: tool.summary })] }, tool.id)))) : (_jsx("p", { className: "rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400", children: "0.9.0 shifts to hardening: test coverage, error boundaries, friendly error messages, and documentation ahead of the stable 1.0 release." })) })] })] }), _jsxs("section", { className: "rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4", children: [_jsxs("div", { children: [_jsx("p", { className: "text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400", children: "Workspace pulse" }), _jsx("h2", { className: "mt-2 font-display text-2xl font-semibold text-slate-900 dark:text-white", children: "Recent activity" })] }), _jsx("button", { type: "button", className: "text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300", onClick: clearActivity, disabled: entries.length === 0, children: "Clear log" })] }), entries.length === 0 ? (_jsx("p", { className: "mt-6 text-sm text-slate-500 dark:text-slate-300", children: "Interact with the merge or split workspaces to populate this feed. We keep the last dozen actions locally so you can see what shipped most recently." })) : (_jsx("ul", { className: "mt-6 space-y-4", children: entries.slice(0, 6).map((entry) => (_jsxs("li", { className: "rounded-2xl border border-slate-200/60 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:text-slate-200", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsx("span", { className: `inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badgeStyles[entry.type]}`, children: badgeLabels[entry.type] }), _jsx("span", { className: "text-xs text-slate-400 dark:text-slate-500", children: formatActivityTime(entry.timestamp) })] }), _jsx("p", { className: "mt-2 text-base font-semibold text-slate-900 dark:text-white", children: entry.label }), entry.detail ? (_jsx("p", { className: "text-sm text-slate-500 dark:text-slate-300", children: entry.detail })) : null] }, entry.id))) }))] }), _jsx("section", { className: "rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400", children: _jsx("p", { children: "Your files never leave your device. PDF Workbench processes everything in-browser using pdf.js for rendering and pdf-lib for manipulation. No uploads, no server round-trips." }) })] }));
 };
 export default LandingPage;
