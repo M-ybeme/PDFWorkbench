@@ -502,7 +502,6 @@ const ImagesToPdfPage = () => {
                     : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
                 )}
                 htmlFor={inputId}
-                aria-label={option.label}
               >
                 <input
                   type="radio"
@@ -564,7 +563,6 @@ const ImagesToPdfPage = () => {
                         : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300",
                     )}
                     htmlFor={inputId}
-                    aria-label={option.label}
                   >
                     <input
                       type="radio"

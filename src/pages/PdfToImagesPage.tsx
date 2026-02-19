@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 
+import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { buildDownloadName } from "../lib/documentPipeline";
@@ -233,28 +234,15 @@ const PdfToImagesPage = () => {
       ) : null}
 
       {loadError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-center justify-between gap-4">
-            <p>{loadError}</p>
-            <button className="text-xs font-semibold uppercase" onClick={() => setLoadError(null)}>
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={() => setLoadError(null)}>
+          {loadError}
+        </Alert>
       ) : null}
 
       {exportError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-center justify-between gap-4">
-            <p>{exportError}</p>
-            <button
-              className="text-xs font-semibold uppercase"
-              onClick={() => setExportError(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={() => setExportError(null)}>
+          {exportError}
+        </Alert>
       ) : null}
 
       {exportSuccess ? (

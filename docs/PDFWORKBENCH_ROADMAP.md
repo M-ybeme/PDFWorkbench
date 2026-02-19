@@ -14,7 +14,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
-## Status — 2026-02-16
+## Status — 2026-02-19
 
 - Completed 0.1.0 "Project Foundations" — Vite app shell, theming, routing, state, linting/testing stack, and Netlify deploy are live.
 - 0.2.0 viewer now ships drag/drop ingest, pdf.js rendering, cached page draws, richer metadata, and a scrollable thumbnail rail.
@@ -29,7 +29,7 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 - Signatures (0.7.0) workspace now ships draw/type/upload signature creation, text/symbol fill tools, pen/highlighter freehand drawing, drag/resize placement, undo stack (Ctrl+Z), session persistence across refreshes, and canvas-to-PNG stroke export. Covered by unit tests (10 cases) and Playwright E2E (2 scenarios).
 - UX & Accessibility (0.8.0) delivers shared utilities (`formatBytes`, `formatTimestamp`), `useDragDrop` hook replacing ~30 lines per page across all 7 tools, shared UI components (Alert, Button, DropZone), `useFocusTrap` and `useKeyboardShortcuts` hooks, ARIA roles on all modals and fullscreen overlay, skip-to-content link, keyboard shortcuts (Ctrl+O, arrow nav, +/- zoom, 0 reset), and 124 unit tests + 11 Playwright E2E tests all passing.
 - Feature Gaps (0.8.5) delivers PDF → Images export tool (format/scale/quality controls, ZIP bundling, progress bar), text search in viewer (Ctrl+F, debounced search, match navigation, SearchBar component), 138 unit tests + E2E coverage. Password protection on export deferred — pdf-lib v1.17.1 cannot encrypt PDFs and no viable browser-only alternative exists.
-- Next steps: begin 0.9.0 Hardening work.
+- 0.9.0 Hardening is complete: help modals, footer, error boundaries, friendly error messages, Merge/Split E2E tests, Lighthouse audit + optimisations, and full documentation (README, ARCHITECTURE.md, CONTRIBUTING.md, CHANGELOG.md). Next: 1.0.0 stable release.
 
 ---
 
@@ -338,33 +338,65 @@ The roadmap covers versions **0.1.0 → 1.0.0** and focuses on the following cor
 
 ---
 
+## 0.8.9 — Tool UX Polish
+
+**Goals:** Fix usability problems discovered in real use of the Compression and Signatures tools.
+
+### Compression
+
+- [x] Add full-screen loading modal (spinner + "Compressing your PDF… please don't close this tab") while compression runs so the long-running operation is obvious to the user.
+
+### Signatures — Text tool workflow
+
+- [x] After placing a text block, stay in text mode (no automatic switch back to Signature tool), clear the draft text field, and deselect the placed block so the next text entry can begin immediately.
+- [x] Clicking an existing text placement on the canvas now automatically switches to the Text tool so editing is immediately available.
+- [x] Promote "Done editing" from a tiny text link to a solid filled button so it's obvious how to finish editing a placed text block.
+
+### Signatures — Text box width
+
+- [x] Remove the 15% minimum width enforced on text placements. The box can now be dragged as small as the user wants; text is clipped if it doesn't fit, matching standard form-fill expectations.
+
+### Signatures — Stroke layer order
+
+- [x] Add a "Draw strokes above other annotations" checkbox in the Pen and Highlighter panels so users can choose whether pen/highlighter marks land on top of or behind placed signatures and text blocks.
+- [x] The chosen order is respected both in the canvas preview and in the exported PDF.
+
+---
+
 ## 0.9.0 — Hardening, Tests & Documentation
 
 **Goals:** Prepare for production-ready v1.0.
 
 ### User-Facing
 
-- Help/About modal for each tool
-- Version stamp in footer
+- [x] Help/About modal for each tool — `ToolHelpModal` accessible via hover `?` in sidebar (desktop) and a tool context bar above the Outlet (mobile).
+- [x] Version stamp in footer — 3-column footer: version left, logo center, social links (LinkedIn, GitHub, Ko-fi) right.
 
 ### Engineering
 
-- Test coverage pass for all core modules
+- [X] Test coverage pass for all core modules
 - Critical-path E2E tests:
-  - Open → Edit → Download
-  - Merge → Download
-  - Images → PDF
-  - Compress
-  - Sign → Download
-
-- Error boundaries for React
-- Friendly error messages for corrupt/unsupported PDFs
+  - [x] Page Editor — Open → Edit → Download
+  - [x] Images → PDF
+  - [x] Compress
+  - [x] Sign → Download
+  - [x] Merge → Download (2 scenarios: basic merge + reorder before merge)
+  - [x] Split → Extract & Download (3 scenarios: selection, N-page slices ZIP, odd-pages)
+- [x] Error boundaries for React — `ErrorBoundary` class component wrapping every tool route; per-tool crash isolation with "Try again" recovery and "← Back to tools" escape hatch.
+- [x] Friendly error messages for corrupt/unsupported PDFs — standardised `Alert` component with dismiss used consistently across all tool pages for load and operation errors.
+- [x] Lighthouse audit — scores recorded and optimisations applied:
+  - Moved Google Fonts from CSS `@import` waterfall to `<link rel="preconnect">` + `<link rel="stylesheet">` in `index.html` (render-blocking chain eliminated)
+  - Added `<link rel="preload" as="image" href="/PDFWorkbenchLogo.png">` for LCP element
+  - Added `manualChunks` in `vite.config.ts` — `pdfjs-dist`, `pdf-lib`, `jszip`, and all other `node_modules` split into stable vendor chunks for better caching
+  - Fixed accessibility regression on Images page (90 → 96): removed redundant `aria-label` from `<label>` elements that already had `htmlFor` + text content
+  - Baseline scores: Performance 72–87 · Accessibility 90–96 · Best Practices 96 · SEO 92 across all 9 pages
 
 ### Documentation
 
-- Updated README
-- `ARCHITECTURE.md`
-- `CONTRIBUTING.md`
+- [x] Updated README — v0.9.0 tool table, links to new docs, script table, tech stack
+- [x] `docs/ARCHITECTURE.md` — directory structure, data flow, key modules, state management, routing, build config, testing
+- [x] `CONTRIBUTING.md` — prerequisites, scripts, code style, new-tool checklist, accessibility requirements, PR guidelines
+- [x] `CHANGELOG.md` — full version history from 0.1.0 → 0.9.0
 
 ---
 

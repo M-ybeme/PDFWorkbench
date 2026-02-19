@@ -50,6 +50,7 @@ type StampOptions = {
   signatures: SignatureEntry[];
   textPlacements?: TextPlacement[];
   strokes?: DrawnStroke[];
+  strokesOnTop?: boolean;
   startedAt?: number;
 };
 
@@ -96,6 +97,7 @@ export const stampSignaturesToExportResult = async ({
   signatures,
   textPlacements = [],
   strokes = [],
+  strokesOnTop = true,
   startedAt = Date.now(),
 }: StampOptions): Promise<ExportResult> => {
   if (placements.length === 0 && textPlacements.length === 0 && strokes.length === 0) {
@@ -109,6 +111,35 @@ export const stampSignaturesToExportResult = async ({
   const warnings: string[] = [];
   let appliedPlacements = 0;
   let appliedTextPlacements = 0;
+  let appliedStrokes = 0;
+
+  const drawStrokes = async () => {
+    if (strokes.length === 0) return;
+    const strokesByPage = new Map<number, DrawnStroke[]>();
+    for (const stroke of strokes) {
+      const pageIndex = clampPageIndex(stroke.pageNumber, doc.getPageCount());
+      if (pageIndex === -1) {
+        warnings.push(`Skipped stroke on invalid page ${stroke.pageNumber}`);
+        continue;
+      }
+      const existing = strokesByPage.get(pageIndex) ?? [];
+      existing.push(stroke);
+      strokesByPage.set(pageIndex, existing);
+    }
+    for (const [pageIndex, pageStrokes] of strokesByPage) {
+      const page = doc.getPage(pageIndex);
+      const pageSize = getPageSize(sizeCache, pageIndex, page);
+      const pngBytes = renderStrokesToPng(pageStrokes, pageSize);
+      if (!pngBytes) continue;
+      const image = await doc.embedPng(pngBytes);
+      page.drawImage(image, { x: 0, y: 0, width: pageSize.width, height: pageSize.height });
+      appliedStrokes += pageStrokes.length;
+    }
+  };
+
+  if (!strokesOnTop) {
+    await drawStrokes();
+  }
 
   for (const placement of placements) {
     const signature = signatureMap.get(placement.signatureId);
@@ -171,35 +202,8 @@ export const stampSignaturesToExportResult = async ({
     appliedTextPlacements += 1;
   }
 
-  let appliedStrokes = 0;
-  if (strokes.length > 0) {
-    const strokesByPage = new Map<number, DrawnStroke[]>();
-    for (const stroke of strokes) {
-      const pageIndex = clampPageIndex(stroke.pageNumber, doc.getPageCount());
-      if (pageIndex === -1) {
-        warnings.push(`Skipped stroke on invalid page ${stroke.pageNumber}`);
-        continue;
-      }
-      const existing = strokesByPage.get(pageIndex) ?? [];
-      existing.push(stroke);
-      strokesByPage.set(pageIndex, existing);
-    }
-
-    for (const [pageIndex, pageStrokes] of strokesByPage) {
-      const page = doc.getPage(pageIndex);
-      const pageSize = getPageSize(sizeCache, pageIndex, page);
-      const pngBytes = renderStrokesToPng(pageStrokes, pageSize);
-      if (!pngBytes) continue;
-
-      const image = await doc.embedPng(pngBytes);
-      page.drawImage(image, {
-        x: 0,
-        y: 0,
-        width: pageSize.width,
-        height: pageSize.height,
-      });
-      appliedStrokes += pageStrokes.length;
-    }
+  if (strokesOnTop) {
+    await drawStrokes();
   }
 
   if (appliedPlacements === 0 && appliedTextPlacements === 0 && appliedStrokes === 0) {

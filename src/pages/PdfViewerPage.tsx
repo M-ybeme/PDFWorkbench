@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
+import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import SearchBar from "../components/SearchBar";
 import { useDragDrop } from "../hooks/useDragDrop";
@@ -701,11 +702,11 @@ const PdfViewerPage = () => {
             </p>
           </div>
 
-          {error && (
-            <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/60 dark:text-rose-200">
+          {error ? (
+            <Alert variant="error" onDismiss={() => setError(null)}>
               {error}
-            </p>
-          )}
+            </Alert>
+          ) : null}
 
           {pdf && pageDetail && (
             <dl className="mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300">

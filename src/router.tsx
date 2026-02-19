@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
 import AppShell from "./components/AppShell";
+import ErrorBoundary from "./components/ErrorBoundary";
 import LandingPage from "./pages/LandingPage";
 import ToolPlaceholder from "./pages/ToolPlaceholder";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -23,88 +24,107 @@ const suspenseFallback = (label: string) => (
 );
 
 const viewerElement = (
-  <Suspense fallback={suspenseFallback("viewer")}>
-    <PdfViewerPage />
-  </Suspense>
+  <ErrorBoundary toolName="viewer">
+    <Suspense fallback={suspenseFallback("viewer")}>
+      <PdfViewerPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const mergeElement = (
-  <Suspense fallback={suspenseFallback("merge workspace")}>
-    <MergeToolPage />
-  </Suspense>
+  <ErrorBoundary toolName="merge workspace">
+    <Suspense fallback={suspenseFallback("merge workspace")}>
+      <MergeToolPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const splitElement = (
-  <Suspense fallback={suspenseFallback("split workspace")}>
-    <SplitToolPage />
-  </Suspense>
+  <ErrorBoundary toolName="split workspace">
+    <Suspense fallback={suspenseFallback("split workspace")}>
+      <SplitToolPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const editorElement = (
-  <Suspense fallback={suspenseFallback("page editor")}>
-    <PageEditorPage />
-  </Suspense>
+  <ErrorBoundary toolName="page editor">
+    <Suspense fallback={suspenseFallback("page editor")}>
+      <PageEditorPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const imagesElement = (
-  <Suspense fallback={suspenseFallback("images workspace")}>
-    <ImagesToPdfPage />
-  </Suspense>
+  <ErrorBoundary toolName="images workspace">
+    <Suspense fallback={suspenseFallback("images workspace")}>
+      <ImagesToPdfPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const compressionElement = (
-  <Suspense fallback={suspenseFallback("compression workspace")}>
-    <CompressionToolPage />
-  </Suspense>
+  <ErrorBoundary toolName="compression workspace">
+    <Suspense fallback={suspenseFallback("compression workspace")}>
+      <CompressionToolPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const signaturesElement = (
-  <Suspense fallback={suspenseFallback("signatures workspace")}>
-    <SignaturesToolPage />
-  </Suspense>
+  <ErrorBoundary toolName="signatures workspace">
+    <Suspense fallback={suspenseFallback("signatures workspace")}>
+      <SignaturesToolPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
 const pdfToImagesElement = (
-  <Suspense fallback={suspenseFallback("PDF to images workspace")}>
-    <PdfToImagesPage />
-  </Suspense>
+  <ErrorBoundary toolName="PDF to images workspace">
+    <Suspense fallback={suspenseFallback("PDF to images workspace")}>
+      <PdfToImagesPage />
+    </Suspense>
+  </ErrorBoundary>
 );
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <AppShell />,
-    children: [
-      { index: true, element: <LandingPage /> },
-      ...toolRoutes.map((tool) => {
-        console.log("route mapping", tool.id);
-        return {
-          path: tool.path,
-          element:
-            tool.id === "viewer" ? (
-              viewerElement
-            ) : tool.id === "merge" ? (
-              mergeElement
-            ) : tool.id === "split" ? (
-              splitElement
-            ) : tool.id === "editor" ? (
-              editorElement
-            ) : tool.id === "images" ? (
-              imagesElement
-            ) : tool.id === "compression" ? (
-              compressionElement
-            ) : tool.id === "signatures" ? (
-              signaturesElement
-            ) : tool.id === "pdf-to-images" ? (
-              pdfToImagesElement
-            ) : (
-              <ToolPlaceholder tool={tool} />
-            ),
-        };
-      }),
-      { path: "*", element: <NotFoundPage /> },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <AppShell />,
+      children: [
+        { index: true, element: <LandingPage /> },
+        ...toolRoutes.map((tool) => {
+          console.log("route mapping", tool.id);
+          return {
+            path: tool.path,
+            element:
+              tool.id === "viewer" ? (
+                viewerElement
+              ) : tool.id === "merge" ? (
+                mergeElement
+              ) : tool.id === "split" ? (
+                splitElement
+              ) : tool.id === "editor" ? (
+                editorElement
+              ) : tool.id === "images" ? (
+                imagesElement
+              ) : tool.id === "compression" ? (
+                compressionElement
+              ) : tool.id === "signatures" ? (
+                signaturesElement
+              ) : tool.id === "pdf-to-images" ? (
+                pdfToImagesElement
+              ) : (
+                <ToolPlaceholder tool={tool} />
+              ),
+          };
+        }),
+        { path: "*", element: <NotFoundPage /> },
+      ],
+    },
+  ],
+  { future: { v7_startTransition: true, v7_relativeSplatPath: true } },
+);
 
 export default router;

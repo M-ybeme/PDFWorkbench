@@ -74,6 +74,8 @@ type SignatureRibbonProps = {
   strokes: DrawnStroke[];
   onClearStrokes: () => void;
   onDeleteStroke: (id: string) => void;
+  strokesOnTop: boolean;
+  onSetStrokesOnTop: (value: boolean) => void;
 
   // Placements
   placements: SignaturePlacement[];
@@ -276,17 +278,8 @@ const TextPanel = (props: SignatureRibbonProps) => (
       {props.textToolError ? (
         <p className="mt-1 text-xs text-rose-500">{props.textToolError}</p>
       ) : null}
-      <div className="mt-0.5 flex items-center justify-between text-[0.65rem] text-slate-400">
+      <div className="mt-0.5 text-[0.65rem] text-slate-400">
         <span>{props.textFormValues.text.length} chars</span>
-        {props.isEditingTextPlacement ? (
-          <button
-            type="button"
-            className="font-semibold uppercase tracking-wider text-slate-500"
-            onClick={props.onClearTextSelection}
-          >
-            Done editing
-          </button>
-        ) : null}
       </div>
     </div>
 
@@ -315,9 +308,9 @@ const TextPanel = (props: SignatureRibbonProps) => (
         Width
         <input
           type="range"
-          min="0.15"
+          min="0.02"
           max="0.9"
-          step="0.05"
+          step="0.01"
           value={props.textFormValues.widthPct}
           onChange={(e) => props.onUpdateTextWidth(parseFloat(e.target.value))}
           className="mt-0.5 w-24"
@@ -328,23 +321,29 @@ const TextPanel = (props: SignatureRibbonProps) => (
       </label>
     </div>
 
-    <button
-      type="button"
-      className={clsx(
-        "shrink-0 self-center rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
-        props.activeTool === "text"
-          ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
-          : "border-slate-200 text-slate-500 hover:border-slate-300",
-      )}
-      onClick={() => props.onActivateTool("text")}
-      disabled={!props.textDraftHasContent && !props.isEditingTextPlacement}
-    >
-      {props.isEditingTextPlacement
-        ? "Finish editing"
-        : props.activeTool === "text"
-          ? "Click PDF to place"
-          : "Use text tool"}
-    </button>
+    {props.isEditingTextPlacement ? (
+      <button
+        type="button"
+        className="shrink-0 self-center rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow transition hover:bg-emerald-700"
+        onClick={props.onClearTextSelection}
+      >
+        ✓ Done editing
+      </button>
+    ) : (
+      <button
+        type="button"
+        className={clsx(
+          "shrink-0 self-center rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
+          props.activeTool === "text"
+            ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
+            : "border-slate-200 text-slate-500 hover:border-slate-300",
+        )}
+        onClick={() => props.onActivateTool("text")}
+        disabled={!props.textDraftHasContent}
+      >
+        {props.activeTool === "text" ? "Click PDF to place" : "Use text tool"}
+      </button>
+    )}
   </div>
 );
 
@@ -435,6 +434,16 @@ const PenPanel = (props: SignatureRibbonProps & { tool: "pen" | "highlighter" })
         onChange={(e) => props.onSetPenColor(e.target.value)}
         className="h-7 w-8 cursor-pointer rounded-lg border border-slate-200/70 bg-white/90 p-0.5 dark:border-white/10 dark:bg-slate-900/40"
       />
+    </label>
+
+    <label className="flex cursor-pointer items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
+      <input
+        type="checkbox"
+        checked={props.strokesOnTop}
+        onChange={(e) => props.onSetStrokesOnTop(e.target.checked)}
+        className="h-3.5 w-3.5 rounded accent-slate-700"
+      />
+      Strokes above annotations
     </label>
 
     {props.strokes.length > 0 ? (

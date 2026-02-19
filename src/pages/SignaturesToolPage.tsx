@@ -10,6 +10,7 @@ import clsx from "clsx";
 
 import type { PDFPageProxy, RenderTask } from "pdfjs-dist/types/src/display/api";
 
+import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import SignatureBuilderModal from "../components/SignatureBuilderModal";
 import SignatureRibbon, {
@@ -111,6 +112,7 @@ const SignaturesToolPage = () => {
   const [penWidth, setPenWidth] = useState(3);
   const [activeStrokePoints, setActiveStrokePoints] = useState<StrokePoint[] | null>(null);
   const [history, setHistory] = useState<HistorySnapshot[]>([]);
+  const [strokesOnTop, setStrokesOnTop] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -410,7 +412,7 @@ const SignaturesToolPage = () => {
                   });
                 }
 
-                const targetWidth = Math.max(0.08, startWidth + deltaX);
+                const targetWidth = Math.max(0.02, startWidth + deltaX);
                 return resizeTextPlacement({
                   placement: entry,
                   nextWidthPct: targetWidth,
@@ -546,9 +548,9 @@ const SignaturesToolPage = () => {
           pointYPct,
         });
         setTextPlacements((current) => [...current, placement]);
-        setSelectedTextId(placement.id);
+        setSelectedTextId(null);
         setSelectedPlacementId(null);
-        setActiveTool("signature");
+        setTextDraft((draft) => ({ ...draft, text: "" }));
         setTextToolError(null);
         setDownloadMessage(null);
         return;
@@ -623,6 +625,7 @@ const SignaturesToolPage = () => {
         signatures,
         textPlacements,
         strokes,
+        strokesOnTop,
       });
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);
@@ -648,7 +651,7 @@ const SignaturesToolPage = () => {
     } finally {
       setStamping(false);
     }
-  }, [markUsed, pdf, placements, sessionStore, signatures, strokes, textPlacements]);
+  }, [markUsed, pdf, placements, sessionStore, signatures, strokes, strokesOnTop, textPlacements]);
 
   const handleSignatureDelete = useCallback(
     (id: string) => {
@@ -699,7 +702,7 @@ const SignaturesToolPage = () => {
 
   const updateTextWidth = useCallback(
     (value: number) => {
-      const clamped = Math.min(0.9, Math.max(0.15, value));
+      const clamped = Math.min(0.9, Math.max(0.02, value));
       if (selectedTextId) {
         setTextPlacements((current) =>
           current.map((placement) =>
@@ -830,9 +833,9 @@ const SignaturesToolPage = () => {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
+        <Alert variant="error" onDismiss={() => setError(null)}>
           {error}
-        </div>
+        </Alert>
       ) : null}
 
       {status === "ready" && pdf ? (
@@ -907,6 +910,8 @@ const SignaturesToolPage = () => {
             historyLength={history.length}
             onUndo={handleUndo}
             overlayCount={placements.length + textPlacements.length + strokes.length}
+            strokesOnTop={strokesOnTop}
+            onSetStrokesOnTop={setStrokesOnTop}
           />
 
           <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-inner dark:border-white/10 dark:bg-slate-900/70">
@@ -1056,6 +1061,56 @@ const SignaturesToolPage = () => {
                           </div>
                         );
                       })}
+                      {!strokesOnTop ? (
+                        <svg
+                          className="absolute inset-0 h-full w-full"
+                          viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
+                          style={{
+                            pointerEvents:
+                              activeTool === "pen" || activeTool === "highlighter"
+                                ? "auto"
+                                : "none",
+                          }}
+                          onPointerDown={handlePenPointerDown}
+                          onPointerMove={handlePenPointerMove}
+                          onPointerUp={handlePenPointerUp}
+                          onPointerLeave={handlePenPointerUp}
+                        >
+                          {strokesForCurrentPage.map((stroke) => (
+                            <polyline
+                              key={stroke.id}
+                              points={stroke.points
+                                .map(
+                                  (p) =>
+                                    `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
+                                )
+                                .join(" ")}
+                              fill="none"
+                              stroke={stroke.color}
+                              strokeWidth={stroke.widthPx}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity={stroke.opacity}
+                            />
+                          ))}
+                          {activeStrokePoints && activeStrokePoints.length >= 2 ? (
+                            <polyline
+                              points={activeStrokePoints
+                                .map(
+                                  (p) =>
+                                    `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
+                                )
+                                .join(" ")}
+                              fill="none"
+                              stroke={penColor}
+                              strokeWidth={activeTool === "highlighter" ? penWidth * 4 : penWidth}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity={activeTool === "highlighter" ? 0.3 : 1}
+                            />
+                          ) : null}
+                        </svg>
+                      ) : null}
                       {textPlacementsForCurrentPage.map((placement) => {
                         const isSelected = placement.id === selectedTextId;
                         return (
@@ -1072,6 +1127,7 @@ const SignaturesToolPage = () => {
                               event.stopPropagation();
                               setSelectedTextId(placement.id);
                               setSelectedPlacementId(null);
+                              setActiveTool("text");
                             }}
                           >
                             <div
@@ -1110,50 +1166,56 @@ const SignaturesToolPage = () => {
                           </div>
                         );
                       })}
-                      <svg
-                        className="absolute inset-0 h-full w-full"
-                        viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
-                        style={{
-                          pointerEvents:
-                            activeTool === "pen" || activeTool === "highlighter" ? "auto" : "none",
-                        }}
-                        onPointerDown={handlePenPointerDown}
-                        onPointerMove={handlePenPointerMove}
-                        onPointerUp={handlePenPointerUp}
-                        onPointerLeave={handlePenPointerUp}
-                      >
-                        {strokesForCurrentPage.map((stroke) => (
-                          <polyline
-                            key={stroke.id}
-                            points={stroke.points
-                              .map(
-                                (p) => `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
-                              )
-                              .join(" ")}
-                            fill="none"
-                            stroke={stroke.color}
-                            strokeWidth={stroke.widthPx}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            opacity={stroke.opacity}
-                          />
-                        ))}
-                        {activeStrokePoints && activeStrokePoints.length >= 2 ? (
-                          <polyline
-                            points={activeStrokePoints
-                              .map(
-                                (p) => `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
-                              )
-                              .join(" ")}
-                            fill="none"
-                            stroke={penColor}
-                            strokeWidth={activeTool === "highlighter" ? penWidth * 4 : penWidth}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            opacity={activeTool === "highlighter" ? 0.3 : 1}
-                          />
-                        ) : null}
-                      </svg>
+                      {strokesOnTop ? (
+                        <svg
+                          className="absolute inset-0 h-full w-full"
+                          viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
+                          style={{
+                            pointerEvents:
+                              activeTool === "pen" || activeTool === "highlighter"
+                                ? "auto"
+                                : "none",
+                          }}
+                          onPointerDown={handlePenPointerDown}
+                          onPointerMove={handlePenPointerMove}
+                          onPointerUp={handlePenPointerUp}
+                          onPointerLeave={handlePenPointerUp}
+                        >
+                          {strokesForCurrentPage.map((stroke) => (
+                            <polyline
+                              key={stroke.id}
+                              points={stroke.points
+                                .map(
+                                  (p) =>
+                                    `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
+                                )
+                                .join(" ")}
+                              fill="none"
+                              stroke={stroke.color}
+                              strokeWidth={stroke.widthPx}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity={stroke.opacity}
+                            />
+                          ))}
+                          {activeStrokePoints && activeStrokePoints.length >= 2 ? (
+                            <polyline
+                              points={activeStrokePoints
+                                .map(
+                                  (p) =>
+                                    `${p.xPct * canvasSize.width},${p.yPct * canvasSize.height}`,
+                                )
+                                .join(" ")}
+                              fill="none"
+                              stroke={penColor}
+                              strokeWidth={activeTool === "highlighter" ? penWidth * 4 : penWidth}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity={activeTool === "highlighter" ? 0.3 : 1}
+                            />
+                          ) : null}
+                        </svg>
+                      ) : null}
                     </>
                   )}
                 </div>

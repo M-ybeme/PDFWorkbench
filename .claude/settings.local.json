@@ -6,7 +6,8 @@
       "Bash(npx vitest run:*)",
       "Bash(npx eslint:*)",
       "Bash(npm run build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx prettier:*)"
     ]
   }
 }

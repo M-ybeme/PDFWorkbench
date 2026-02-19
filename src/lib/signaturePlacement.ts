@@ -156,7 +156,7 @@ export const resizePlacement = ({ placement, nextWidthPct, canvasAspect }: Resiz
 };
 
 const clampTextWithinCanvas = (placement: TextPlacement) => {
-  const widthPct = clamp(placement.widthPct, 0.15, 0.9);
+  const widthPct = clamp(placement.widthPct, 0.02, 0.9);
   const maxX = Math.max(0, 1 - widthPct);
   const maxY = Math.max(0, 1 - 0.02);
 
@@ -187,7 +187,7 @@ export const createTextPlacement = ({
   pointXPct,
   pointYPct,
 }: CreateTextPlacementArgs): TextPlacement => {
-  const normalizedWidth = clamp(widthPct, 0.15, 0.9);
+  const normalizedWidth = clamp(widthPct, 0.02, 0.9);
   const placement: TextPlacement = {
     id: createTextId(),
     pageNumber,

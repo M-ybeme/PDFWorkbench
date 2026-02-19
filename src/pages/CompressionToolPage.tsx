@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 
+import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
@@ -235,28 +236,15 @@ const CompressionToolPage = () => {
       ) : null}
 
       {loadError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-center justify-between gap-4">
-            <p>{loadError}</p>
-            <button className="text-xs font-semibold uppercase" onClick={() => setLoadError(null)}>
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={() => setLoadError(null)}>
+          {loadError}
+        </Alert>
       ) : null}
 
       {compressionError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-100">
-          <div className="flex items-center justify-between gap-4">
-            <p>{compressionError}</p>
-            <button
-              className="text-xs font-semibold uppercase"
-              onClick={() => setCompressionError(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
+        <Alert variant="error" onDismiss={() => setCompressionError(null)}>
+          {compressionError}
+        </Alert>
       ) : null}
 
       {compressionSuccess ? (
@@ -442,6 +430,30 @@ const CompressionToolPage = () => {
         onSubmit={handlePasswordSubmit}
         onCancel={handlePasswordCancel}
       />
+
+      {isCompressing ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="compression-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        >
+          <div className="flex flex-col items-center gap-5 rounded-3xl bg-white px-10 py-10 shadow-2xl dark:bg-slate-900">
+            <div className="h-14 w-14 animate-spin rounded-full border-4 border-slate-200 border-t-amber-500 dark:border-slate-700 dark:border-t-amber-400" />
+            <div className="text-center">
+              <p
+                id="compression-modal-title"
+                className="text-base font-semibold text-slate-900 dark:text-white"
+              >
+                Compressing your PDF…
+              </p>
+              <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+                This can take a minute for large files. Please keep this tab open.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
