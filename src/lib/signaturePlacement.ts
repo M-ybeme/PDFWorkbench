@@ -1,7 +1,7 @@
 import type { SignatureEntry } from "../state/signatureLibrary";
 
 export const SIGNATURE_DISCLAIMER_COPY =
-  "Signature stamps are visual only. They do not apply cryptographic or certified signatures.";
+  "Signatures created in this tool are visual annotations only. They are not cryptographically secured, identity-verified, or compliant with electronic signature laws such as the ESIGN Act or UETA.";
 
 export type SignaturePlacement = {
   id: string;

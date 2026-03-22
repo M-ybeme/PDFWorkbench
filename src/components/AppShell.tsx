@@ -217,6 +217,22 @@ const AppShell = () => {
             sidebarCollapsed ? "max-w-7xl" : "max-w-6xl 2xl:max-w-7xl",
           )}
         >
+          <p className="mb-4 text-center text-xs text-slate-400 dark:text-slate-600">
+            Files are processed locally in your browser and are not uploaded by this application.
+            Signature stamps are visual annotations only — not cryptographically secured,
+            identity-verified, or compliant with electronic signature laws.
+            You are responsible for the content you process. To the maximum extent permitted by
+            law, this application is provided without liability for any damages arising from its use.
+            Security depends on your browser, device, and extensions.{" "}
+            <a
+              href="https://github.com/M-ybeme/PDFWorkbench/blob/main/THIRD_PARTY_LICENSES.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-400"
+            >
+              Third-party licenses
+            </a>
+          </p>
           <div className="flex flex-col items-center gap-4 text-center md:flex-row md:justify-between md:text-left">
             {/* Left — version */}
             <p className="text-xs font-medium uppercase tracking-widest text-slate-400 dark:text-slate-600">

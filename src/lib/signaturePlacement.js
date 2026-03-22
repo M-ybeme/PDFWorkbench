@@ -1,4 +1,4 @@
-export const SIGNATURE_DISCLAIMER_COPY = "Signature stamps are visual only. They do not apply cryptographic or certified signatures.";
+export const SIGNATURE_DISCLAIMER_COPY = "Signatures created in this tool are visual annotations only. They are not cryptographically secured, identity-verified, or compliant with electronic signature laws such as the ESIGN Act or UETA.";
 const createId = () => {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
         return crypto.randomUUID();
