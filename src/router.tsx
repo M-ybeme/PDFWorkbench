@@ -94,32 +94,29 @@ const router = createBrowserRouter(
       element: <AppShell />,
       children: [
         { index: true, element: <LandingPage /> },
-        ...toolRoutes.map((tool) => {
-          console.log("route mapping", tool.id);
-          return {
-            path: tool.path,
-            element:
-              tool.id === "viewer" ? (
-                viewerElement
-              ) : tool.id === "merge" ? (
-                mergeElement
-              ) : tool.id === "split" ? (
-                splitElement
-              ) : tool.id === "editor" ? (
-                editorElement
-              ) : tool.id === "images" ? (
-                imagesElement
-              ) : tool.id === "compression" ? (
-                compressionElement
-              ) : tool.id === "signatures" ? (
-                signaturesElement
-              ) : tool.id === "pdf-to-images" ? (
-                pdfToImagesElement
-              ) : (
-                <ToolPlaceholder tool={tool} />
-              ),
-          };
-        }),
+        ...toolRoutes.map((tool) => ({
+          path: tool.path,
+          element:
+            tool.id === "viewer" ? (
+              viewerElement
+            ) : tool.id === "merge" ? (
+              mergeElement
+            ) : tool.id === "split" ? (
+              splitElement
+            ) : tool.id === "editor" ? (
+              editorElement
+            ) : tool.id === "images" ? (
+              imagesElement
+            ) : tool.id === "compression" ? (
+              compressionElement
+            ) : tool.id === "signatures" ? (
+              signaturesElement
+            ) : tool.id === "pdf-to-images" ? (
+              pdfToImagesElement
+            ) : (
+              <ToolPlaceholder tool={tool} />
+            ),
+        })),
         { path: "*", element: <NotFoundPage /> },
       ],
     },

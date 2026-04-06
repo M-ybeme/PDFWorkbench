@@ -10,7 +10,7 @@ import clsx from "clsx";
 
 import logoSrc from "/PDFWorkbenchLogo.png?url";
 
-const APP_VERSION = "0.9.0";
+const APP_VERSION = "1.0.0";
 
 const AppShell = () => {
   const navOpen = useUIState((state) => state.navOpen);
@@ -220,10 +220,10 @@ const AppShell = () => {
           <p className="mb-4 text-center text-xs text-slate-400 dark:text-slate-600">
             Files are processed locally in your browser and are not uploaded by this application.
             Signature stamps are visual annotations only — not cryptographically secured,
-            identity-verified, or compliant with electronic signature laws.
-            You are responsible for the content you process. To the maximum extent permitted by
-            law, this application is provided without liability for any damages arising from its use.
-            Security depends on your browser, device, and extensions.{" "}
+            identity-verified, or compliant with electronic signature laws. You are responsible for
+            the content you process. To the maximum extent permitted by law, this application is
+            provided without liability for any damages arising from its use. Security depends on
+            your browser, device, and extensions.{" "}
             <a
               href="https://github.com/M-ybeme/PDFWorkbench/blob/main/THIRD_PARTY_LICENSES.md"
               target="_blank"

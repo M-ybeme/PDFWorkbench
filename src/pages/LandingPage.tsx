@@ -43,9 +43,9 @@ const LandingPage = () => {
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          Phase 0.8.5
+          v1.0.0
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-          Live
+          Stable
         </p>
         <h1 className="font-display text-4xl font-semibold leading-tight text-slate-900 dark:text-white md:text-5xl">
           View, merge, split, edit, compress, and export PDFs—entirely in your browser.
@@ -57,22 +57,21 @@ const LandingPage = () => {
           images—entirely offline.
         </p>
         <p className="mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          New in 0.8.5: PDF → Images export with format/scale/quality controls, and in-viewer text
-          search with match navigation. Plus full keyboard accessibility and skip-to-content
-          support.
+          v1.0.0 — all eight tools are stable and production-ready. 143 unit tests and full
+          Playwright E2E coverage. Zero server round-trips; all processing happens in your browser.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            to="/pdf-to-images"
+            to="/viewer"
             className="inline-flex items-center gap-3 rounded-full bg-slate-900 px-6 py-3 text-white shadow-lg shadow-slate-900/40 transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 dark:bg-white dark:text-slate-900"
           >
-            Try PDF → Images →
+            Open PDF Viewer →
           </Link>
           <Link
-            to="/viewer"
+            to="/merge"
             className="inline-flex items-center gap-3 rounded-full border border-slate-900/20 px-6 py-3 text-slate-700 transition hover:border-slate-900 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-white/30 dark:text-slate-200"
           >
-            Open PDF Viewer
+            Try Merge & Split
           </Link>
         </div>
         <dl className="mt-10 grid grid-cols-1 gap-6 text-sm uppercase tracking-[0.3em] text-slate-500 md:grid-cols-3">
@@ -100,10 +99,10 @@ const LandingPage = () => {
       <section className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Phase 0.8.5
+            v1.0.0 — Stable
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
-            What&rsquo;s live right now?
+            What&rsquo;s in the box?
           </h2>
           <ul className="mt-6 space-y-4 text-sm text-slate-600 dark:text-slate-300">
             <li>✅ PDF viewer with drag/drop ingest, zoom presets, metadata, and thumbnail rail</li>
@@ -135,17 +134,17 @@ const LandingPage = () => {
               trapping, and ARIA roles across all modals
             </li>
             <li>
-              ✅ 138 unit tests, Playwright E2E coverage, password prompts, activity log, and
+              ✅ 143 unit tests, Playwright E2E coverage, password prompts, activity log, and
               light/dark theming
             </li>
           </ul>
         </article>
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Next Tracks
+            Post-1.0 Roadmap
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
-            Upcoming tool drops
+            What&rsquo;s coming next
           </h2>
           <div className="mt-6 space-y-5">
             {featuredUpcoming.length > 0 ? (
@@ -165,10 +164,37 @@ const LandingPage = () => {
                 </div>
               ))
             ) : (
-              <p className="rounded-2xl border border-dashed border-slate-200/70 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                0.9.0 shifts to hardening: test coverage, error boundaries, friendly error messages,
-                and documentation ahead of the stable 1.0 release.
-              </p>
+              <div className="space-y-3">
+                {[
+                  {
+                    label: "Watermark & Page Numbers",
+                    summary:
+                      "Stamp text or image overlays across all pages with position, font, and opacity controls.",
+                  },
+                  {
+                    label: "Redaction",
+                    summary:
+                      "Draw rectangles over sensitive content and permanently flatten the redacted areas on export.",
+                  },
+                  {
+                    label: "PDF → Images (Batch)",
+                    summary:
+                      "Bulk-export all pages as a ZIP of PNGs or JPEGs with configurable DPI.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-dashed border-slate-200/70 p-4 dark:border-white/10"
+                  >
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {item.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </article>
@@ -229,10 +255,10 @@ const LandingPage = () => {
 
       <section className="rounded-3xl border border-dashed border-slate-300/60 p-8 text-center text-sm text-slate-500 dark:border-white/20 dark:text-slate-400">
         <p>
-          Files are processed locally in your browser and are not uploaded by this application.
-          PDF Workbench uses pdf.js for rendering and pdf-lib for manipulation — no server
-          round-trips. Security depends on your browser, device, and installed extensions. Files
-          may persist in browser memory or your downloads folder depending on your actions.
+          Files are processed locally in your browser and are not uploaded by this application. PDF
+          Workbench uses pdf.js for rendering and pdf-lib for manipulation — no server round-trips.
+          Security depends on your browser, device, and installed extensions. Files may persist in
+          browser memory or your downloads folder depending on your actions.
         </p>
       </section>
     </div>
