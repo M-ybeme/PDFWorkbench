@@ -7,8 +7,7 @@ const NotFoundPage = () => (
       Route missing
     </h1>
     <p className="mt-4 text-slate-600 dark:text-slate-300">
-      The page you were looking for is not wired yet. Choose a milestone from the roadmap panel to
-      get back on track.
+      The page you were looking for doesn&rsquo;t exist. Head back to the tools list to keep going.
     </p>
     <Link
       to="/"

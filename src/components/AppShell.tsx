@@ -155,12 +155,7 @@ const AppShell = () => {
                   }
                   onClick={() => setNavOpen(false)}
                 >
-                  <span className="flex items-center justify-between text-base font-semibold">
-                    {tool.label}
-                    <span className="text-xs font-medium uppercase tracking-widest text-slate-400">
-                      {tool.version}
-                    </span>
-                  </span>
+                  <span className="text-base font-semibold">{tool.label}</span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">{tool.summary}</span>
                 </NavLink>
                 <button
@@ -191,9 +186,6 @@ const AppShell = () => {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">
                   {activeToolForMobile.label}
-                </span>
-                <span className="text-xs font-medium uppercase tracking-widest text-slate-400">
-                  {activeToolForMobile.version}
                 </span>
               </div>
               <button

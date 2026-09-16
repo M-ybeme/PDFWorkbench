@@ -666,14 +666,14 @@ const PdfViewerPage = () => {
     <div className="space-y-8">
       <header className="rounded-3xl border border-slate-200/70 bg-white/80 p-8 shadow-lg dark:border-white/10 dark:bg-slate-900/70">
         <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-          0.2.0
+          PDF Viewer
         </p>
         <h1 className="mt-3 font-display text-4xl font-semibold text-slate-900 dark:text-white">
-          PDF Viewer MVP
+          View, search, and inspect any PDF
         </h1>
         <p className="mt-4 max-w-2xl text-base text-slate-600 dark:text-slate-300">
-          Load a PDF entirely in your browser, render crisp pages via pdf.js, and prime the layout
-          for thumbnails, metadata, and downstream editing flows.
+          Load a PDF entirely in your browser and render crisp pages via pdf.js, with a thumbnail
+          rail, full metadata, and in-page text search.
         </p>
       </header>
 
@@ -799,8 +799,8 @@ const PdfViewerPage = () => {
                 Drop a PDF to preview the first page.
               </p>
               <p className="mt-3 max-w-lg text-sm text-slate-500 dark:text-slate-400">
-                Once the viewer solidifies, this pane will host thumbnails, metadata, and editing
-                affordances for the rest of the toolchain.
+                Once loaded, this pane shows the page canvas alongside a thumbnail rail and file
+                metadata.
               </p>
             </div>
           )}

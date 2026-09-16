@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 
-import { toolRoutes } from "../data/toolRoutes";
 import { useActivityLog, type ActivityCategory } from "../state/activityLog";
 
 const badgeStyles: Record<ActivityCategory, string> = {
@@ -36,8 +35,6 @@ const formatActivityTime = (timestamp: number) =>
 const LandingPage = () => {
   const entries = useActivityLog((state) => state.entries);
   const clearActivity = useActivityLog((state) => state.clear);
-  const upcomingTools = toolRoutes.filter((tool) => tool.status === "upcoming");
-  const featuredUpcoming = upcomingTools.slice(0, 3);
 
   return (
     <div className="space-y-12">
@@ -96,7 +93,7 @@ const LandingPage = () => {
         </dl>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
             v1.0.0 — Stable
@@ -138,65 +135,6 @@ const LandingPage = () => {
               light/dark theming
             </li>
           </ul>
-        </article>
-        <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
-          <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            Post-1.0 Roadmap
-          </p>
-          <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
-            What&rsquo;s coming next
-          </h2>
-          <div className="mt-6 space-y-5">
-            {featuredUpcoming.length > 0 ? (
-              featuredUpcoming.map((tool) => (
-                <div
-                  key={tool.id}
-                  className="rounded-2xl border border-slate-200/50 p-4 dark:border-white/10"
-                >
-                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400">
-                    <span>{tool.eta}</span>
-                    <span>{tool.version}</span>
-                  </div>
-                  <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                    {tool.label}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">{tool.summary}</p>
-                </div>
-              ))
-            ) : (
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "Watermark & Page Numbers",
-                    summary:
-                      "Stamp text or image overlays across all pages with position, font, and opacity controls.",
-                  },
-                  {
-                    label: "Redaction",
-                    summary:
-                      "Draw rectangles over sensitive content and permanently flatten the redacted areas on export.",
-                  },
-                  {
-                    label: "PDF → Images (Batch)",
-                    summary:
-                      "Bulk-export all pages as a ZIP of PNGs or JPEGs with configurable DPI.",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-dashed border-slate-200/70 p-4 dark:border-white/10"
-                  >
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      {item.label}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {item.summary}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </article>
       </section>
 

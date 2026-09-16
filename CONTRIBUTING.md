@@ -74,10 +74,10 @@ Short version:
 
 Follow this checklist to add a tool page cleanly:
 
-1. **`src/data/toolRoutes.ts`** — add an entry with `id`, `label`, `summary`, `version`, `path`, `status: "live"`.
+1. **`src/data/toolRoutes.ts`** — add an entry with `id`, `label`, `summary`, `path`.
 2. **`src/pages/YourToolPage.tsx`** — create the page component. Use `useDragDrop` for file ingest, `Alert` for errors, `ExportResult` + `logExportResult` for downloads.
 3. **`src/data/toolHelp.ts`** — add a `ToolHelpContent` entry under the same `id`. This populates the `?` help modal in the sidebar.
-4. **`src/router.tsx`** — add a `lazy(() => import(...))` import and wire it into the route map.
+4. **`src/router.tsx`** — add a `lazy(() => import(...))` import and an entry in the `toolElements` map keyed by the tool's `id`.
 5. **`src/lib/yourTool.ts`** — add pure processing functions. Keep React out of `lib/`.
 6. **`src/lib/yourTool.test.ts`** — unit tests for the processing logic.
 7. **`playwright/yourTool.spec.ts`** — at least one E2E test: upload a file, trigger the operation, verify the download.

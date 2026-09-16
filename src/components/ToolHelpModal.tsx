@@ -34,21 +34,16 @@ const ToolHelpModal = ({ toolId, onClose }: Props) => {
         className="relative z-10 w-full max-w-lg rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-              About this tool
-            </p>
-            <h2
-              id="tool-help-title"
-              className="mt-1 text-xl font-semibold text-slate-900 dark:text-white"
-            >
-              {content.title}
-            </h2>
-          </div>
-          <span className="mt-1 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-widest text-slate-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300">
-            {content.version}
-          </span>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
+            About this tool
+          </p>
+          <h2
+            id="tool-help-title"
+            className="mt-1 text-xl font-semibold text-slate-900 dark:text-white"
+          >
+            {content.title}
+          </h2>
         </div>
 
         {/* Description */}

@@ -2,22 +2,22 @@
 
 A complete client-side PDF toolkit built with React + TypeScript. View, merge, split, edit pages, convert images to PDF, compress, sign, and export pages as images — all without uploading files to a server. **Files are processed locally in your browser and are not uploaded by this application.**
 
-> Current release: **v0.9.0** · See [CHANGELOG.md](CHANGELOG.md) for what's new.
+> Current release: **v1.0.0** · See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ---
 
 ## Tools
 
-| Tool             | Version | What it does                                                                                                                   |
-| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **PDF Viewer**   | 0.2.x   | Drag/drop loader, thumbnail rail, zoom controls, text search (Ctrl+F), metadata inspector, password-prompt support             |
-| **Merge**        | 0.3.x   | Stack any number of PDFs, drag to reorder, download the merged result in one click                                             |
-| **Split**        | 0.3.x   | Select individual pages or use presets (every N, odd/even), export as a single PDF or ZIP bundle                               |
-| **Page Editor**  | 0.4.x   | Drag-to-reorder, rotate ±90°, delete pages, undo history, then export                                                          |
-| **Images → PDF** | 0.5.x   | Convert image sets (JPEG/PNG/WebP/GIF/BMP) to a multi-page PDF with layout presets and automatic PNG repair                    |
-| **Compression**  | 0.6.x   | Reduce file size with three quality presets (High/Balanced/Smallest) via canvas rasterisation + JPEG re-encoding               |
-| **Signatures**   | 0.7.x   | Draw, type, or upload a signature; drag/resize onto any page; add text blocks and freehand pen strokes; export a flattened PDF |
-| **PDF → Images** | 0.8.x   | Export each page as PNG or JPEG at 1×/2×/3× scale, download individually or as a ZIP archive                                   |
+| Tool             | What it does                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **PDF Viewer**   | Drag/drop loader, thumbnail rail, zoom controls, text search (Ctrl+F), metadata inspector, password-prompt support             |
+| **Merge**        | Stack any number of PDFs, drag to reorder, download the merged result in one click                                             |
+| **Split**        | Select individual pages or use presets (every N, odd/even), export as a single PDF or ZIP bundle                               |
+| **Page Editor**  | Drag-to-reorder, rotate ±90°, delete pages, undo history, then export                                                          |
+| **Images → PDF** | Convert image sets (JPEG/PNG/WebP/GIF/BMP) to a multi-page PDF with layout presets and automatic PNG repair                    |
+| **Compression**  | Reduce file size with three quality presets (High/Balanced/Smallest) via canvas rasterisation + JPEG re-encoding               |
+| **Signatures**   | Draw, type, or upload a signature; drag/resize onto any page; add text blocks and freehand pen strokes; export a flattened PDF |
+| **PDF → Images** | Export each page as PNG or JPEG at 1×/2×/3× scale, download individually or as a ZIP archive                                   |
 
 ---
 

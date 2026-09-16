@@ -137,7 +137,7 @@ Tool pages own their local state (`useState`) for ephemeral UI concerns: loaded 
 - **`ErrorBoundary`** wrapping every tool element (per-tool crash isolation)
 - **Future flags** (`v7_startTransition`, `v7_relativeSplatPath`) to opt into React Router v7 behaviour early
 
-The route tree is driven by `src/data/toolRoutes.ts`, which is the single source of truth for tool IDs, labels, versions, paths, and nav summaries. Adding a new tool requires:
+The route tree is driven by `src/data/toolRoutes.ts`, which is the single source of truth for tool IDs, labels, paths, and nav summaries. Adding a new tool requires:
 
 1. A new entry in `toolRoutes.ts`
 2. A new page component in `src/pages/`

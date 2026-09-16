@@ -355,7 +355,7 @@ const ImagesToPdfPage = () => {
           {...dropZoneProps}
         >
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            0.5.x · Images → PDF
+            Images → PDF
           </p>
           <h1 className="mt-4 font-display text-4xl text-slate-900 dark:text-white">
             Drag in images, tune layout, download a polished PDF.

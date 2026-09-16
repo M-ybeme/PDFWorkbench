@@ -1,12 +1,11 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
 import AppShell from "./components/AppShell";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LandingPage from "./pages/LandingPage";
-import ToolPlaceholder from "./pages/ToolPlaceholder";
 import NotFoundPage from "./pages/NotFoundPage";
-import { toolRoutes } from "./data/toolRoutes";
+import { toolRoutes, type ToolId } from "./data/toolRoutes";
 
 const PdfViewerPage = lazy(() => import("./pages/PdfViewerPage"));
 const MergeToolPage = lazy(() => import("./pages/MergeToolPage"));
@@ -87,6 +86,17 @@ const pdfToImagesElement = (
   </ErrorBoundary>
 );
 
+const toolElements: Record<ToolId, ReactNode> = {
+  viewer: viewerElement,
+  merge: mergeElement,
+  split: splitElement,
+  editor: editorElement,
+  images: imagesElement,
+  compression: compressionElement,
+  signatures: signaturesElement,
+  "pdf-to-images": pdfToImagesElement,
+};
+
 const router = createBrowserRouter(
   [
     {
@@ -96,26 +106,7 @@ const router = createBrowserRouter(
         { index: true, element: <LandingPage /> },
         ...toolRoutes.map((tool) => ({
           path: tool.path,
-          element:
-            tool.id === "viewer" ? (
-              viewerElement
-            ) : tool.id === "merge" ? (
-              mergeElement
-            ) : tool.id === "split" ? (
-              splitElement
-            ) : tool.id === "editor" ? (
-              editorElement
-            ) : tool.id === "images" ? (
-              imagesElement
-            ) : tool.id === "compression" ? (
-              compressionElement
-            ) : tool.id === "signatures" ? (
-              signaturesElement
-            ) : tool.id === "pdf-to-images" ? (
-              pdfToImagesElement
-            ) : (
-              <ToolPlaceholder tool={tool} />
-            ),
+          element: toolElements[tool.id],
         })),
         { path: "*", element: <NotFoundPage /> },
       ],

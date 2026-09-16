@@ -1,6 +1,5 @@
 export type ToolHelpContent = {
   title: string;
-  version: string;
   description: string;
   features: string[];
   shortcuts?: { keys: string; description: string }[];
@@ -9,7 +8,6 @@ export type ToolHelpContent = {
 export const toolHelp: Record<string, ToolHelpContent> = {
   viewer: {
     title: "PDF Viewer",
-    version: "0.2.x",
     description:
       "A lightweight canvas-based PDF viewer that runs entirely in your browser. Load any PDF by drag-and-drop or Ctrl+O. Navigate pages with arrow keys or the thumbnail rail, zoom from 50–200%, and inspect the file's embedded metadata.",
     features: [
@@ -29,7 +27,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   merge: {
     title: "Merge",
-    version: "0.3.x",
     description:
       "Combine multiple PDF files into a single document in-browser. Drop any number of PDFs, drag cards to set order, then download the merged result instantly. Nothing is uploaded to a server.",
     features: [
@@ -44,7 +41,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   split: {
     title: "Split",
-    version: "0.3.x",
     description:
       "Extract pages from a PDF using Selection mode (click individual tiles) or Preset mode (every N pages). Download as individual PDFs or a ZIP bundle.",
     features: [
@@ -59,7 +55,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   editor: {
     title: "Page Editor",
-    version: "0.4.x",
     description:
       "Restructure a PDF's pages from a thumbnail-first workspace. Drag to reorder, rotate in 90° increments, delete pages, then undo any combination before exporting.",
     features: [
@@ -77,7 +72,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   images: {
     title: "Images → PDF",
-    version: "0.5.x",
     description:
       "Convert a batch of JPEG, PNG, WebP, or GIF images into a single multi-page PDF. Choose a fit mode per image, and the tool automatically repairs malformed PNG headers before embedding.",
     features: [
@@ -91,7 +85,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   compression: {
     title: "Compression",
-    version: "0.6.x",
     description:
       "Reduce PDF file size by rasterising pages to a canvas at reduced resolution and re-encoding as JPEG. Three quality presets give control over the fidelity-vs-size trade-off.",
     features: [
@@ -105,7 +98,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   signatures: {
     title: "Signatures",
-    version: "0.7.x",
     description:
       "Add visual signature stamps to any page. Create by drawing, typing in a styled typeface, or uploading a PNG. Drag, resize, and add text blocks or freehand pen marks before exporting a flattened PDF.",
     features: [
@@ -123,7 +115,6 @@ export const toolHelp: Record<string, ToolHelpContent> = {
 
   "pdf-to-images": {
     title: "PDF → Images",
-    version: "0.8.x",
     description:
       "Export PDF pages as high-quality PNG or JPEG images. Choose a scale from 1× to 3×, set JPEG quality, then download individual pages or all pages as a ZIP archive.",
     features: [
