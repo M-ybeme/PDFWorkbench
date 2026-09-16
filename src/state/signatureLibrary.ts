@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { createLocalId } from "../lib/ids";
+
 export type SignatureKind = "drawn" | "typed" | "upload";
 
 export type SignatureEntry = {
@@ -31,14 +33,6 @@ type SignatureLibraryState = {
 
 const MAX_SIGNATURES = 10;
 
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `signature-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
 const normalizeLabel = (label?: string) => {
   const trimmed = label?.trim();
   if (trimmed && trimmed.length > 0) {
@@ -55,7 +49,7 @@ export const useSignatureLibrary = create<SignatureLibraryState>()(
       addSignature: (input) => {
         const now = Date.now();
         const entry: SignatureEntry = {
-          id: createId(),
+          id: createLocalId("signature"),
           label: normalizeLabel(input.label),
           kind: input.kind,
           dataUrl: input.dataUrl,

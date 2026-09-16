@@ -25,11 +25,6 @@ const baseGuardrails = [
   "Best suited for image-heavy scanned documents where rasterization is acceptable.",
 ];
 
-const futureTracks = [
-  "Offer an optional serverless optimizer for archival-grade compression.",
-  "Playwright E2E coverage that asserts on byte savings for representative fixtures.",
-];
-
 const formatPageSize = (pageSize: LoadedPdf["metadata"]["pageSize"]) => {
   if (!pageSize) {
     return "—";
@@ -207,11 +202,11 @@ const CompressionToolPage = () => {
       >
         <div className="mx-auto flex max-w-3xl flex-col gap-4 text-center">
           <p className="text-2xl font-semibold text-slate-900 dark:text-white">
-            {pdf ? "Ready for compression preview" : "Compress image-heavy PDFs"}
+            {pdf ? "Ready to compress" : "Compress image-heavy PDFs"}
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {pdf
-              ? "Choose a preset, review projected savings, and run the preview export. Actual downscaling lands next, but the ingest/export guardrails are ready."
+              ? "Choose a preset, review projected savings, then compress and download the result."
               : "Drop a PDF or select one manually to unlock the compression workspace. Presets focus on raster layers while text and vector content stay untouched."}
           </p>
           <div className="flex flex-col items-center gap-2">
@@ -401,17 +396,6 @@ const CompressionToolPage = () => {
               <ul className="mt-3 list-disc space-y-2 pl-4">
                 {guardrailMessages.map((message) => (
                   <li key={message}>{message}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-3xl border border-dashed border-slate-300/70 p-5 text-sm text-slate-500 dark:border-white/20 dark:text-slate-400">
-              <p className="font-semibold text-slate-700 dark:text-slate-200">
-                Next implementation beats
-              </p>
-              <ul className="mt-3 list-disc space-y-2 pl-4">
-                {futureTracks.map((item) => (
-                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>

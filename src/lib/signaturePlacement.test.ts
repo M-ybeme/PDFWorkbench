@@ -9,7 +9,6 @@ import {
   moveTextPlacement,
   placementToPdfRect,
   resizeTextPlacement,
-  strokeToPdfPoints,
   textPlacementToPdfPosition,
   type SignaturePlacement,
   type TextPlacement,
@@ -168,31 +167,5 @@ describe("signaturePlacement", () => {
     expect(stroke).toBeTruthy();
     expect(stroke!.tool).toBe("highlighter");
     expect(stroke!.opacity).toBe(0.3);
-  });
-
-  it("converts stroke points to PDF coordinates with Y inversion", () => {
-    const stroke = createStrokeFromPoints({
-      pageNumber: 1,
-      points: [
-        { xPct: 0, yPct: 0 },
-        { xPct: 0.5, yPct: 0.5 },
-        { xPct: 1, yPct: 1 },
-      ],
-      color: "#000000",
-      widthPx: 2,
-      tool: "pen",
-    })!;
-
-    const pdfPoints = strokeToPdfPoints(stroke, { width: 612, height: 792 });
-    expect(pdfPoints).toHaveLength(3);
-
-    expect(pdfPoints[0]!.x).toBeCloseTo(0);
-    expect(pdfPoints[0]!.y).toBeCloseTo(792);
-
-    expect(pdfPoints[1]!.x).toBeCloseTo(306);
-    expect(pdfPoints[1]!.y).toBeCloseTo(396);
-
-    expect(pdfPoints[2]!.x).toBeCloseTo(612);
-    expect(pdfPoints[2]!.y).toBeCloseTo(0);
   });
 });

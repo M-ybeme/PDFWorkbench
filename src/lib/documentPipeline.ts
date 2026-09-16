@@ -1,12 +1,5 @@
 import { sanitizeFileStem } from "./fileNames";
-
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `pdf-source-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
+import { createLocalId } from "./ids";
 
 const timestampToken = () => new Date().toISOString().replace(/[:.]/g, "-");
 
@@ -52,7 +45,7 @@ export const createPdfSourceFromFile = async (
 ): Promise<PdfSource> => {
   const bytes = new Uint8Array(await file.arrayBuffer());
   return {
-    id: createId(),
+    id: createLocalId("pdf-source"),
     origin,
     name: file.name,
     size: bytes.byteLength,

@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 
+import { PdfLoadError } from "./pdfErrors";
 import type { LoadedPdf } from "./pdfLoader";
 
 export type ImageFormat = "png" | "jpeg";
@@ -60,7 +61,7 @@ export const renderPageToImage = async (
 
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("Canvas 2D context unavailable.");
+    throw new PdfLoadError("unsupported", "Canvas 2D context unavailable.");
   }
 
   await page.render({ canvas, canvasContext: context, viewport }).promise;
@@ -105,7 +106,7 @@ const cloneToArrayBuffer = (source: Uint8Array): ArrayBuffer => {
 
 export const bundleImagesAsZip = async (images: RenderedPageImage[]): Promise<Blob> => {
   if (images.length === 0) {
-    throw new Error("No images to bundle.");
+    throw new PdfLoadError("unsupported", "No images to bundle.");
   }
 
   const zip = new JSZip();

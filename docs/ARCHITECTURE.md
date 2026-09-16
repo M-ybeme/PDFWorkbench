@@ -55,13 +55,14 @@ vite.config.ts      Vite + Vitest config with manualChunks for vendor splitting
 | `signatureStamp.ts`     | Embeds signature images, text blocks, and pen strokes into the exported PDF.                                     |
 | `imageLayout.ts`        | Computes `x/y/width/height` for fit, fill, and center modes inside a page's margin box.                          |
 | `pngIntegrity.ts`       | Detects and repairs malformed PNG headers before `pdf-lib.embedPng()` is called.                                 |
-| `pdfErrors.ts`          | Maps pdf.js/pdf-lib error codes to user-friendly message strings.                                                |
-| `documentPipeline.ts`   | `ExportResult` type and `logExportResult` helper (writes to the activity log store).                             |
+| `pdfErrors.ts`          | `PdfLoadError` taxonomy and `getFriendlyPdfError` — maps errors to user-friendly message strings.                |
+| `documentPipeline.ts`   | `PdfSource`/`ExportResult` types, `createPdfSourceFromFile`, and `buildDownloadName(FromSources)` helpers.       |
 | `downloads.ts`          | `triggerBlobDownload` — creates an object URL, clicks it, then schedules revocation.                             |
 | `fileNames.ts`          | Generates consistent download filenames (`{baseName}.{operation}.{timestamp}.{ext}`).                            |
 | `format.ts`             | `formatBytes` and `formatTimestamp` display helpers.                                                             |
 | `pdfWorker.ts`          | Configures the pdf.js worker (sets `workerSrc` for the bundled worker file).                                     |
 | `theme.ts`              | Reads/writes the theme preference to `localStorage`.                                                             |
+| `ids.ts`                | `createLocalId(prefix)` — shared UUID-with-fallback helper for locally generated entity IDs.                     |
 
 ---
 
@@ -97,7 +98,7 @@ User drops a file
 
 ## State Management
 
-Two Zustand stores, both in `src/state/`:
+Five Zustand stores, all in `src/state/`:
 
 **`uiState`**
 
@@ -108,7 +109,21 @@ Two Zustand stores, both in `src/state/`:
 **`activityLog`**
 
 - `entries[]` — recent `ExportResult` summaries surfaced on the landing page
+- `logExportResult(result)` — the entry point tool pages call after a successful export
 - Persisted to `localStorage` via Zustand `persist` middleware
+
+**`pdfAssets`**
+
+- Used by the Merge tool to hold the ordered list of loaded PDFs (`assets[]`) plus busy/error state
+- `removeAsset`/`reset` call `asset.loaded.doc.destroy()` on each pdf.js document before dropping it — new code that removes or replaces assets must preserve this cleanup to avoid leaking pdf.js document handles
+
+**`signatureLibrary`**
+
+- Persisted, capped list (`MAX_SIGNATURES = 10`) of reusable signature images/text the Signatures tool can stamp onto a PDF
+
+**`signatureSession`**
+
+- Persisted in-progress signature placement state (`placements`, `textPlacements`, `strokes`) keyed by `buildFileKey(name, size)`, so reopening the same file restores unsaved work
 
 Tool pages own their local state (`useState`) for ephemeral UI concerns: loaded PDF, error messages, generating flags, selected pages, etc.
 

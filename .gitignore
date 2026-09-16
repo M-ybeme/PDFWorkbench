@@ -8,3 +8,8 @@ dist-ssr
 .env.*
 .vscode
 .DS_Store
+
+# Compiled TS output should never land next to source under src/ (tsc -b
+# only type-checks here; noEmit in tsconfig.app.json is the primary guard)
+src/**/*.js
+src/**/*.js.map

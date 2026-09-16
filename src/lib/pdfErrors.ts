@@ -32,17 +32,5 @@ export const getFriendlyPdfError = (reason: unknown): string => {
     return reason.message;
   }
 
-  if (reason instanceof Error && reason.message) {
-    return reason.message;
-  }
-
   return DEFAULT_MESSAGES.unknown;
-};
-
-export const wrapPdfLoadError = (reason: unknown, fallback: PdfErrorCode = "unknown") => {
-  if (reason instanceof PdfLoadError) {
-    return reason;
-  }
-
-  return new PdfLoadError(fallback, reason instanceof Error ? reason.message : undefined);
 };

@@ -119,7 +119,7 @@ const MergeToolPage = () => {
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-300">
             Drop multiple files or select them manually. We keep the originals in-memory and
-            preserve metadata for the future merge engine.
+            preserve their metadata while you arrange the merge order.
           </p>
           <div className="flex flex-col items-center gap-2">
             <label
@@ -158,7 +158,7 @@ const MergeToolPage = () => {
         <div className="md:col-span-2 space-y-4">
           {assets.length === 0 ? (
             <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-6 text-center text-sm text-slate-500 dark:border-white/5 dark:bg-slate-900/60 dark:text-slate-300">
-              No PDFs yet. Add at least two files to unlock the merge workflow preview.
+              No PDFs yet. Add at least two files to unlock merging.
             </div>
           ) : (
             <ul className="space-y-3">

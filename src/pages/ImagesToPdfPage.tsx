@@ -7,6 +7,8 @@ import { buildImagesPdfFileName } from "../lib/fileNames";
 import { computeImagePlacement, type FitMode } from "../lib/imageLayout";
 import { hasPngSignature, isPngBytesComplete } from "../lib/pngIntegrity";
 import { type ExportResult } from "../lib/documentPipeline";
+import { getFriendlyPdfError, PdfLoadError } from "../lib/pdfErrors";
+import { createLocalId } from "../lib/ids";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 
@@ -31,13 +33,6 @@ const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
-};
-
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `image-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 type ImageAsset = {
@@ -74,36 +69,17 @@ const loadImageElement = (dataUrl: string) =>
 const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: EmbeddableMimeType) =>
   new Promise<Blob>((resolve, reject) => {
     const quality = mimeType === "image/jpeg" ? 0.92 : undefined;
-    if (canvas.toBlob) {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error("Failed to encode image."));
-          }
-        },
-        mimeType,
-        quality,
-      );
-      return;
-    }
-    try {
-      const dataUrl = canvas.toDataURL(mimeType, quality);
-      const base64 = dataUrl.split(",")[1];
-      if (!base64) {
-        reject(new Error("Failed to encode image."));
-        return;
-      }
-      const binary = atob(base64);
-      const buffer = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) {
-        buffer[index] = binary.charCodeAt(index);
-      }
-      resolve(new Blob([buffer], { type: mimeType }));
-    } catch (encodingError) {
-      reject(encodingError instanceof Error ? encodingError : new Error("Failed to encode image."));
-    }
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Failed to encode image."));
+        }
+      },
+      mimeType,
+      quality,
+    );
   });
 
 const blobToUint8Array = async (blob: Blob) => {
@@ -181,7 +157,7 @@ const buildAsset = async (file: File): Promise<ImageAsset> => {
   const width = imageElement.naturalWidth || imageElement.width;
   const height = imageElement.naturalHeight || imageElement.height;
   return {
-    id: createId(),
+    id: createLocalId("image"),
     name: file.name,
     size: file.size,
     type: file.type,
@@ -310,10 +286,19 @@ const ImagesToPdfPage = () => {
       const doc = await PDFDocument.create();
       for (const asset of images) {
         const page = doc.addPage([orientedDimensions.width, orientedDimensions.height]);
-        const embedded =
-          asset.embedType === "image/png"
-            ? await doc.embedPng(asset.bytes)
-            : await doc.embedJpg(asset.bytes);
+        let embedded;
+        try {
+          embedded =
+            asset.embedType === "image/png"
+              ? await doc.embedPng(asset.bytes)
+              : await doc.embedJpg(asset.bytes);
+        } catch (embedError) {
+          console.error(`Failed to embed image "${asset.name}"`, embedError);
+          throw new PdfLoadError(
+            "unsupported",
+            `"${asset.name}" could not be embedded — it may be corrupted or an unsupported image format.`,
+          );
+        }
         const placement = computeImagePlacement(
           asset.width,
           asset.height,
@@ -348,8 +333,8 @@ const ImagesToPdfPage = () => {
       logExportResult(result);
       setStatus(`Created PDF with ${images.length} image${images.length === 1 ? "" : "s"}.`);
     } catch (exportError) {
-      console.error("handleExport error", exportError);
-      setError(exportError instanceof Error ? exportError.message : "Failed to export PDF.");
+      console.error("Failed to export images-to-PDF", exportError);
+      setError(getFriendlyPdfError(exportError));
     } finally {
       setGenerating(false);
     }

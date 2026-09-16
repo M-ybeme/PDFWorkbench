@@ -28,7 +28,8 @@ const loadSourceDocument = async (pdf: LoadedPdf) => {
   try {
     return await PDFDocument.load(pdf.data);
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to load source PDF for splitting", error);
+    throw new PdfLoadError("unknown");
   }
 };
 
@@ -48,7 +49,8 @@ export const extractPagesFromLoadedPdf = async (
     copiedPages.forEach((page) => output.addPage(page));
     return await output.save();
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to extract pages from PDF", error);
+    throw new PdfLoadError("unknown");
   }
 };
 
@@ -86,7 +88,8 @@ export const splitPdfByChunkSize = async (
 
     return chunks;
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to split PDF into chunks", error);
+    throw new PdfLoadError("unknown");
   }
 };
 
@@ -109,6 +112,7 @@ export const buildZipFromEntries = async (entries: ZipEntry[]): Promise<ArrayBuf
     // Copy into a standalone ArrayBuffer so Blob never sees a SharedArrayBuffer-backed view.
     return cloneToArrayBuffer(archive);
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to build zip archive from split documents", error);
+    throw new PdfLoadError("unknown");
   }
 };

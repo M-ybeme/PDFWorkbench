@@ -2,6 +2,7 @@ import { PDFDocument } from "pdf-lib";
 
 import { buildDownloadName } from "./documentPipeline";
 import { formatBytes } from "./format";
+import { PdfLoadError } from "./pdfErrors";
 import type { ExportResult } from "./documentPipeline";
 import type { LoadedPdf } from "./pdfLoader";
 
@@ -85,37 +86,18 @@ export const computeScaledDimensions = (
 
 const canvasToJpegBytes = (canvas: HTMLCanvasElement, quality: number): Promise<Uint8Array> =>
   new Promise((resolve, reject) => {
-    if (canvas.toBlob) {
-      canvas.toBlob(
-        async (blob) => {
-          if (blob) {
-            const buffer = await blob.arrayBuffer();
-            resolve(new Uint8Array(buffer));
-          } else {
-            reject(new Error("Canvas toBlob returned null."));
-          }
-        },
-        "image/jpeg",
-        quality,
-      );
-    } else {
-      try {
-        const dataUrl = canvas.toDataURL("image/jpeg", quality);
-        const base64 = dataUrl.split(",")[1];
-        if (!base64) {
-          reject(new Error("Failed to encode canvas as JPEG."));
-          return;
+    canvas.toBlob(
+      async (blob) => {
+        if (blob) {
+          const buffer = await blob.arrayBuffer();
+          resolve(new Uint8Array(buffer));
+        } else {
+          reject(new Error("Canvas toBlob returned null."));
         }
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        resolve(bytes);
-      } catch (error) {
-        reject(error);
-      }
-    }
+      },
+      "image/jpeg",
+      quality,
+    );
   });
 
 const renderPageToCompressedImage = async (
@@ -173,7 +155,7 @@ const buildCompressedPdf = async (
   }
 
   if (output.getPageCount() === 0) {
-    throw new Error("No pages were successfully compressed.");
+    throw new PdfLoadError("unknown", "No pages were successfully compressed.");
   }
 
   const pdfBytes = await output.save();

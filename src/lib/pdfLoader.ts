@@ -2,6 +2,7 @@ import { PDFDateString, PasswordResponses, getDocument, version as pdfjsVersion 
 import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 
 import { createPdfSourceFromFile, type PdfSource } from "./documentPipeline";
+import { createLocalId } from "./ids";
 import { PdfLoadError, type PdfErrorCode } from "./pdfErrors";
 
 export type PdfDocumentMetadata = {
@@ -38,14 +39,6 @@ export type PdfPasswordRequest = (reason: PdfPasswordReason) => Promise<string |
 
 export type LoadPdfOptions = {
   requestPassword?: PdfPasswordRequest;
-};
-
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `pdf-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 const normalizePdfDate = (value: unknown): string | null => {
@@ -96,7 +89,8 @@ const mapPdfJsError = (reason: unknown): PdfLoadError => {
     return new PdfLoadError("missing-data");
   }
 
-  return new PdfLoadError("unknown", reason instanceof Error ? reason.message : undefined);
+  console.error("Unhandled PDF load error", reason);
+  return new PdfLoadError("unknown");
 };
 
 export const loadPdfFromSource = async (
@@ -155,7 +149,7 @@ export const loadPdfFromSource = async (
 
       return {
         sourceId: source.id,
-        id: createId(),
+        id: createLocalId("pdf"),
         name: source.name,
         size: retainedData.byteLength,
         lastModified: source.lastModified ?? Date.now(),

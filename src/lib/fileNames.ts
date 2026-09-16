@@ -1,7 +1,3 @@
-export type NamedFile = {
-  fileName: string;
-};
-
 const sanitize = (value: string) =>
   value
     .replace(/\.pdf$/i, "")
@@ -17,12 +13,6 @@ const timestampToken = () => new Date().toISOString().replace(/[:.]/g, "-");
 export const sanitizeFileStem = (value: string, fallbackPrefix = "document") => {
   const sanitized = sanitize(value);
   return sanitized || fallbackStem(fallbackPrefix);
-};
-
-export const buildMergedFileName = (items: NamedFile[]) => {
-  const firstItem = items[0];
-  const stem = firstItem ? sanitizeFileStem(firstItem.fileName, "merged") : fallbackStem("merged");
-  return `${stem}-${items.length}files-${timestampToken()}.pdf`;
 };
 
 export const buildSplitSelectionFileName = (sourceName: string, descriptor: string) => {

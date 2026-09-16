@@ -24,7 +24,8 @@ export const mergeLoadedPdfs = async (documents: LoadedPdf[]): Promise<Uint8Arra
 
     return output.save();
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to merge PDFs", error);
+    throw new PdfLoadError("unknown");
   }
 };
 

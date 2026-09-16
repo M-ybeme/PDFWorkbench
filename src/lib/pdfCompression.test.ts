@@ -2,11 +2,14 @@ import { describe, expect as vitestExpect, it, vi, beforeEach, afterEach } from 
 
 import {
   COMPRESSION_PRESETS,
+  compressPdfWithPreset,
   computeScaledDimensions,
   estimateCompressedSize,
   getCompressionPreset,
   type CompressionPresetId,
 } from "./pdfCompression";
+import { PdfLoadError } from "./pdfErrors";
+import type { LoadedPdf } from "./pdfLoader";
 
 describe("pdfCompression", () => {
   describe("COMPRESSION_PRESETS", () => {
@@ -125,36 +128,33 @@ describe("pdfCompression", () => {
   });
 
   describe("compressPdfWithPreset (integration)", () => {
-    let mockCanvas: HTMLCanvasElement;
-    let mockContext: CanvasRenderingContext2D;
+    // Minimal header-only JPEG: SOI + SOF0 declaring a 1x1 RGB image, no scan
+    // data. pdf-lib's JpegEmbedder only reads these header fields, so this is
+    // enough to exercise embedding without a real encoded image.
+    const FAKE_JPEG_BYTES = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03,
+    ]);
+
     let originalCreateElement: typeof document.createElement;
 
     beforeEach(() => {
       originalCreateElement = document.createElement.bind(document);
 
-      mockContext = {
-        drawImage: vi.fn(),
-        fillRect: vi.fn(),
-        getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-      } as unknown as CanvasRenderingContext2D;
-
-      mockCanvas = {
-        width: 0,
-        height: 0,
-        getContext: vi.fn(() => mockContext),
-        toBlob: vi.fn((callback: BlobCallback, type?: string, quality?: number) => {
-          // Simulate JPEG compression - return smaller blob for lower quality
-          const baseSize = 10000;
-          const qualityFactor = quality ?? 0.92;
-          const simulatedSize = Math.round(baseSize * qualityFactor);
-          const blob = new Blob([new ArrayBuffer(simulatedSize)], { type: type ?? "image/jpeg" });
-          callback(blob);
-        }),
-      } as unknown as HTMLCanvasElement;
-
       vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
         if (tagName === "canvas") {
-          return mockCanvas;
+          const mockContext = { drawImage: vi.fn() } as unknown as CanvasRenderingContext2D;
+          return {
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => mockContext),
+            // jsdom's Blob has no arrayBuffer() (canvasToJpegBytes calls it),
+            // so hand back a minimal duck-typed stand-in instead of a real Blob.
+            toBlob: vi.fn((callback: BlobCallback) => {
+              callback({
+                arrayBuffer: () => Promise.resolve(FAKE_JPEG_BYTES.buffer),
+              } as unknown as Blob);
+            }),
+          } as unknown as HTMLCanvasElement;
         }
         return originalCreateElement(tagName);
       });
@@ -164,11 +164,54 @@ describe("pdfCompression", () => {
       vi.restoreAllMocks();
     });
 
-    it("should be tested with a real PDF in Playwright E2E tests", () => {
-      // Canvas mocking in jsdom is limited; full compression tests
-      // require browser environment with actual canvas rendering.
-      // See playwright/ directory for E2E compression tests.
-      vitestExpect(true).toBe(true);
+    const createFakePage = (shouldFail: boolean) => ({
+      getViewport: vi.fn(() => ({ width: 100, height: 100 })),
+      render: vi.fn(() => ({
+        promise: shouldFail
+          ? Promise.reject(new Error("simulated render failure"))
+          : Promise.resolve(),
+      })),
+      cleanup: vi.fn(),
+    });
+
+    const createFakeLoadedPdf = (
+      pageCount: number,
+      failingPages: Set<number> = new Set(),
+    ): LoadedPdf => ({
+      id: "test-pdf",
+      name: "sample.pdf",
+      size: 1_000_000,
+      lastModified: Date.now(),
+      pageCount,
+      pdfVersion: "test",
+      data: new Uint8Array(),
+      metadata: {},
+      doc: {
+        getPage: vi.fn((pageNumber: number) =>
+          Promise.resolve(createFakePage(failingPages.has(pageNumber))),
+        ),
+      } as unknown as LoadedPdf["doc"],
+    });
+
+    it("compresses every page when rendering succeeds", async () => {
+      const pdf = createFakeLoadedPdf(2);
+      const result = await compressPdfWithPreset(pdf, "balanced");
+
+      vitestExpect(result.warnings).toBeUndefined();
+      vitestExpect(result.blob.size).toBeGreaterThan(0);
+    });
+
+    it("skips pages that fail to render and records a warning per page", async () => {
+      const pdf = createFakeLoadedPdf(3, new Set([2]));
+      const result = await compressPdfWithPreset(pdf, "balanced");
+
+      vitestExpect(result.warnings).toEqual(["Page 2 could not be compressed and was skipped."]);
+      vitestExpect(result.blob.size).toBeGreaterThan(0);
+    });
+
+    it("throws a friendly PdfLoadError when every page fails to compress", async () => {
+      const pdf = createFakeLoadedPdf(2, new Set([1, 2]));
+      await vitestExpect(compressPdfWithPreset(pdf, "balanced")).rejects.toThrow(PdfLoadError);
     });
   });
 });

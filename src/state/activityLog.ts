@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 import { type ExportResult } from "../lib/documentPipeline";
 import { formatBytes } from "../lib/format";
+import { createLocalId } from "../lib/ids";
 
 export type ActivityCategory =
   | "viewer"
@@ -37,14 +38,6 @@ type ActivityLogState = {
   reset: () => void;
 };
 
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `activity-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
 export const useActivityLog = create<ActivityLogState>()(
   persist(
     (set) => ({
@@ -52,7 +45,7 @@ export const useActivityLog = create<ActivityLogState>()(
       addEntry: (payload) =>
         set((state) => {
           const entry: ActivityEntry = {
-            id: createId(),
+            id: createLocalId("activity"),
             timestamp: payload.timestamp ?? Date.now(),
             type: payload.type,
             label: payload.label,

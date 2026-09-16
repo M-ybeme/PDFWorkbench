@@ -179,7 +179,7 @@ const PdfToImagesPage = () => {
       );
     } catch (exportProblem) {
       console.error("Failed to export images", exportProblem);
-      setExportError(exportProblem instanceof Error ? exportProblem.message : "Export failed.");
+      setExportError(getFriendlyPdfError(exportProblem));
     } finally {
       setExporting(false);
     }

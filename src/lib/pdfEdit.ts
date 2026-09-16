@@ -55,6 +55,7 @@ export const applyPageEdits = async (
 
     return output.save();
   } catch (error) {
-    throw new PdfLoadError("unknown", error instanceof Error ? error.message : undefined);
+    console.error("Failed to apply page edits", error);
+    throw new PdfLoadError("unknown");
   }
 };

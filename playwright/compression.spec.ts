@@ -48,7 +48,7 @@ test.describe("Compression E2E", () => {
     await uploader.setInputFiles(samplePath);
 
     // Wait for PDF to load
-    await expect(page.getByText(/Ready for compression/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Ready to compress/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/2 pages/i)).toBeVisible();
 
     // Verify preset buttons are visible
@@ -100,7 +100,7 @@ test.describe("Compression E2E", () => {
     await uploader.waitFor({ state: "attached" });
     await uploader.setInputFiles(samplePath);
 
-    await expect(page.getByText(/Ready for compression/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Ready to compress/i)).toBeVisible({ timeout: 15000 });
 
     // Should show the large page count warning
     await expect(page.getByText(/Large page counts/i)).toBeVisible();

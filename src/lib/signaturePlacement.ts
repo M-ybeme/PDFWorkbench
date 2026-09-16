@@ -1,4 +1,5 @@
 import type { SignatureEntry } from "../state/signatureLibrary";
+import { createLocalId } from "./ids";
 
 export const SIGNATURE_DISCLAIMER_COPY =
   "Signatures created in this tool are visual annotations only. They are not cryptographically secured, identity-verified, or compliant with electronic signature laws such as the ESIGN Act or UETA.";
@@ -43,22 +44,6 @@ export type DrawnStroke = {
 export type PageDimensions = {
   width: number;
   height: number;
-};
-
-const createId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `signature-placement-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
-const createTextId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `text-placement-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
@@ -124,7 +109,7 @@ export const createPlacementFromPoint = ({
   const widthPct = baseWidthPct;
 
   const placement: SignaturePlacement = {
-    id: createId(),
+    id: createLocalId("signature-placement"),
     signatureId: signature.id,
     pageNumber,
     xPct: clamp(pointXPct - widthPct / 2, 0, 1 - widthPct),
@@ -189,7 +174,7 @@ export const createTextPlacement = ({
 }: CreateTextPlacementArgs): TextPlacement => {
   const normalizedWidth = clamp(widthPct, 0.02, 0.9);
   const placement: TextPlacement = {
-    id: createTextId(),
+    id: createLocalId("text-placement"),
     pageNumber,
     xPct: clamp(pointXPct, 0, 1 - normalizedWidth),
     yPct: clamp(pointYPct, 0, 0.98),
@@ -262,41 +247,9 @@ export const placementToPdfRect = (
   return { x, y, width, height };
 };
 
-const base64Decode = (value: string): string => {
-  if (typeof atob === "function") {
-    return atob(value);
-  }
-
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  let output = "";
-  let index = 0;
-  const sanitized = value.replace(/[^A-Za-z0-9+/=]/g, "");
-
-  while (index < sanitized.length) {
-    const enc1 = chars.indexOf(sanitized.charAt(index++));
-    const enc2 = chars.indexOf(sanitized.charAt(index++));
-    const enc3 = chars.indexOf(sanitized.charAt(index++));
-    const enc4 = chars.indexOf(sanitized.charAt(index++));
-
-    const chr1 = (enc1 << 2) | (enc2 >> 4);
-    const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-    const chr3 = ((enc3 & 3) << 6) | enc4;
-
-    output += String.fromCharCode(chr1);
-    if (enc3 !== 64 && enc3 !== -1) {
-      output += String.fromCharCode(chr2);
-    }
-    if (enc4 !== 64 && enc4 !== -1) {
-      output += String.fromCharCode(chr3);
-    }
-  }
-
-  return output;
-};
-
 export const dataUrlToUint8Array = (dataUrl: string): Uint8Array => {
   const [, base64 = ""] = dataUrl.split(",");
-  const binary = base64Decode(base64);
+  const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
@@ -314,14 +267,6 @@ export const textPlacementToPdfPosition = (
   const y = size.height - top - placement.fontSizePt;
 
   return { x, y, maxWidth };
-};
-
-const createStrokeId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `stroke-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 type CreateStrokeArgs = {
@@ -347,7 +292,7 @@ export const createStrokeFromPoints = ({
   }));
 
   return {
-    id: createStrokeId(),
+    id: createLocalId("stroke"),
     pageNumber,
     points: clamped,
     color,
@@ -356,11 +301,3 @@ export const createStrokeFromPoints = ({
     tool,
   };
 };
-
-export type PdfStrokePoint = { x: number; y: number };
-
-export const strokeToPdfPoints = (stroke: DrawnStroke, size: PageDimensions): PdfStrokePoint[] =>
-  stroke.points.map((p) => ({
-    x: p.xPct * size.width,
-    y: size.height - p.yPct * size.height,
-  }));
