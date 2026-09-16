@@ -4,6 +4,32 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.1] — 2026-09-15
+
+### Fixed
+
+- **Stale pre-1.0 UI copy removed across the app** — Compression and Merge pages no longer describe already-shipped features as "coming next"; the PDF Viewer no longer shows a "0.2.0 / PDF Viewer MVP" header describing its own thumbnail rail and metadata panel as future work; the 404 page no longer references a "roadmap panel."
+- **Friendly error messages no longer leak raw library internals** — `getFriendlyPdfError` and every `PdfLoadError` call site (`pdfEdit`, `pdfMerge`, `pdfSplit`, `pdfLoader`, `pdfCompression`, `pdfToImages`, Images → PDF) now consistently show a safe, specific message instead of raw pdf-lib/pdf.js error text, while still logging the original error via `console.error` for debugging.
+
+### Removed
+
+- **~51 stray compiled `.js` files** that had been checked into `src/` alongside their `.ts`/`.tsx` sources — leftover `tsc` output from a build config gap. `tsconfig.app.json` now sets `noEmit: true` so `tsc -b` (used only for type-checking) can't regenerate them, with a `.gitignore` backstop.
+- **Dead code** — `buildMergedFileName`/`NamedFile`, the unused `wrapPdfLoadError` helper, the superseded `strokeToPdfPoints`/`PdfStrokePoint` vector-stroke path, and unreachable `canvas.toBlob`/`atob` browser-compatibility fallbacks (this app only ever runs in evergreen browsers).
+- **Pre-1.0 rollout scaffolding** — `ToolPlaceholder.tsx` and its router fallback (every tool has been live since 1.0.0), the vestigial `status`/`eta`/per-tool `version` fields on `toolRoutes.ts`/`toolHelp.ts`, and the Landing Page's "What's coming next" card, which had drifted to list an already-shipped feature.
+
+### Improved
+
+- **8 duplicate UUID-with-fallback ID helpers** consolidated into a single `createLocalId(prefix)` in `src/lib/ids.ts`.
+- **Router exhaustiveness** — `router.tsx`'s tool-to-page lookup is now typed as `Record<ToolId, ReactNode>` (`ToolId` shared with `documentPipeline.ts`'s activity categorization), so adding a new tool route without wiring up its element now fails `tsc` at build time instead of silently rendering a blank page.
+- Two placeholder unit tests (`expect(true).toBe(true)`) in `pdfCompression.test.ts` / `pdfToImages.test.ts` replaced with real behavior tests covering per-page skip/warning/failure handling and ZIP bundling.
+
+### Documentation
+
+- `docs/ARCHITECTURE.md`, `README.md`, and `CONTRIBUTING.md` updated to match the above — accurate Zustand store count and `documentPipeline.ts` exports, the release line corrected from `v0.9.0` to `v1.0.0`, and a trimmed tools table without the removed per-tool version column.
+- Added a `CHANGELOG.md` convention: a pre-commit hook (`.githooks/pre-commit`, wired up by `npm install`) now requires a changelog entry alongside other project changes.
+
+---
+
 ## [0.9.0] — 2026-02-19
 
 ### Added

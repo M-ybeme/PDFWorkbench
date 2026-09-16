@@ -19,7 +19,7 @@ Thanks for your interest in contributing. This guide covers everything you need 
 git clone https://github.com/M-ybeme/PDFWorkbench.git
 cd PDFWorkbench
 
-# 2. Install dependencies
+# 2. Install dependencies (also wires up the CHANGELOG pre-commit hook — see below)
 npm install
 
 # 3. Install Playwright browsers (first time only)
@@ -117,6 +117,7 @@ PDF Workbench targets **WCAG 2.1 AA**. When adding UI:
 4. **All CI checks must pass** before merging (lint, unit tests, build).
 5. E2E tests run locally; include a note in the PR if you've verified them.
 6. For significant architectural changes, update `docs/ARCHITECTURE.md` alongside the code.
+7. Add a `CHANGELOG.md` entry for the change — a pre-commit hook blocks commits that touch project files without one (see [Changelog](#changelog) below).
 
 ---
 
@@ -131,3 +132,17 @@ Update Compression page to use shared Alert component
 ```
 
 No need for a formal convention prefix (`feat:`, `fix:`) unless you prefer it.
+
+---
+
+## Changelog
+
+Every commit that touches project files (code, docs, config) must include an update to `CHANGELOG.md` — add an entry under the version you're working toward, following the existing `## [x.y.z] — YYYY-MM-DD` / `### Added` / `### Improved` / `### Fixed` structure.
+
+This is enforced by a pre-commit hook in `.githooks/pre-commit`, wired up automatically by `npm install` (via the `prepare` script, which runs `git config core.hooksPath .githooks`). The hook blocks a commit if it stages non-generated files without also staging a change to `CHANGELOG.md`. For a change that genuinely doesn't warrant a changelog entry, bypass with:
+
+```bash
+git commit --no-verify
+```
+
+If the hook doesn't seem to be running (e.g. you cloned before this convention existed), run `npm install` again, or manually: `git config core.hooksPath .githooks`.

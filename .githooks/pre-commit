@@ -1,0 +1,30 @@
+#!/bin/sh
+# Requires CHANGELOG.md to be part of a commit that touches real project
+# files. Bypass with `git commit --no-verify` for changes that genuinely
+# don't warrant a changelog entry (e.g. a pure CHANGELOG-only follow-up
+# would never hit this — it's already excluded below).
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+if echo "$staged" | grep -qx "CHANGELOG.md"; then
+  exit 0
+fi
+
+# Ignore commits that only touch generated/local artifacts, not product code.
+relevant=$(echo "$staged" | grep -Ev '^(test-results/|\.dev-toolkit/|.*\.tsbuildinfo$)')
+
+if [ -z "$relevant" ]; then
+  exit 0
+fi
+
+echo "CHANGELOG.md was not updated in this commit." >&2
+echo "Add an entry describing this change, or bypass with:" >&2
+echo "  git commit --no-verify" >&2
+echo "" >&2
+echo "Staged files:" >&2
+echo "$staged" | sed 's/^/  /' >&2
+exit 1
