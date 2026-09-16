@@ -19,7 +19,7 @@ This document describes the codebase structure, key design decisions, and data-f
 src/
   components/       Shared UI components (AppShell, Alert, Button, DropZone, modals)
   data/             Static data (toolRoutes, toolHelp content)
-  hooks/            Custom React hooks (useDragDrop, useFocusTrap, useKeyboardShortcuts, usePdfTextSearch)
+  hooks/            Custom React hooks — see Shared Hooks below
   lib/              Pure utility modules — PDF operations, formatting, layout math
   pages/            One file per tool page; owns local state and wires lib/ calls together
   state/            Zustand stores (uiState, activityLog)
@@ -125,7 +125,7 @@ Five Zustand stores, all in `src/state/`:
 
 - Persisted in-progress signature placement state (`placements`, `textPlacements`, `strokes`) keyed by `buildFileKey(name, size)`, so reopening the same file restores unsaved work
 
-Tool pages own their local state (`useState`) for ephemeral UI concerns: loaded PDF, error messages, generating flags, selected pages, etc.
+Tool pages own local state (`useState`) for their own ephemeral UI concerns — generating flags, selected pages, export settings, edit history, etc. The loaded-PDF/status/error/password-prompt slice itself comes from the shared `useLoadedPdf` hook (see below), not per-page state.
 
 ---
 
@@ -148,12 +148,35 @@ The route tree is driven by `src/data/toolRoutes.ts`, which is the single source
 
 ## Shared Hooks
 
-| Hook                   | Purpose                                                                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| `useDragDrop`          | Unified file ingest — drag-and-drop zone + hidden `<input>` + global `Ctrl+O`. Used by all 8 tool pages.  |
-| `useFocusTrap`         | Traps Tab/Shift+Tab focus within a modal ref. Applied to all dialogs.                                     |
-| `useKeyboardShortcuts` | Declarative shortcut registration with input-element guard. Used for viewer navigation and global Ctrl+O. |
-| `usePdfTextSearch`     | Searches text content across all pages via pdf.js `getTextContent()` with per-page caching.               |
+| Hook                   | Purpose                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `useDragDrop`          | Unified file ingest — drag-and-drop zone + hidden `<input>` + global `Ctrl+O`. Used by all 8 tool pages.   |
+| `useLoadedPdf`         | Owns the single-document PDF loading lifecycle (load, password retry, replace, reset, cleanup). See below. |
+| `usePasswordPrompt`    | Owns just the password-prompt-modal state; used internally by `useLoadedPdf` and directly by Merge.        |
+| `useFocusTrap`         | Traps Tab/Shift+Tab focus within a modal ref. Applied to all dialogs.                                      |
+| `useKeyboardShortcuts` | Declarative shortcut registration with input-element guard. Used for viewer navigation and global Ctrl+O.  |
+| `usePdfTextSearch`     | Searches text content across all pages via pdf.js `getTextContent()` with per-page caching.                |
+
+---
+
+## PDF Loading Lifecycle (`useLoadedPdf`)
+
+`src/hooks/useLoadedPdf.ts` is the single implementation of the load/password-retry/replace/reset/cleanup state machine that used to be duplicated per page. It sits directly on top of `pdfLoader.ts`: it dynamically imports `loadPdfFromFile` (cached at module scope after the first call, so every page shares one `import()`), passes it a `requestPassword` callback, and turns the result into `{ pdf, status, error }`.
+
+**What it owns:**
+
+- `pdf: LoadedPdf | null`, `status: "idle" | "loading" | "ready" | "error"`, `error: string | null` (via `getFriendlyPdfError`)
+- `passwordPrompt` state and `submitPassword`/`cancelPassword` (delegated to `usePasswordPrompt`) — `loadPdfFromSource`'s retry loop calls `requestPassword` again on a wrong password, so the same prompt naturally reappears with `reason: "password-incorrect"`
+- `loadFile(file)` — loads a file, destroying whatever was previously loaded first
+- `reset()` — clears the current document and cancels any pending password prompt
+- Destroying the pdf.js document exactly once at each transition: on replace, on reset, and on unmount. A `pdfRef` (mirroring `pdf` outside React's render cycle) is the single source of truth for "what needs destroying," so replacement and unmount can never both try to destroy the same document
+- A monotonic request token guards against async races: if a newer `loadFile`/`reset` call supersedes one still in flight, the older call's eventual result is discarded and — if it was a successful load — its document is destroyed immediately rather than leaked
+
+**What it does not own:** tool-specific state (selected pages, edit history, export settings, canvas rendering, thumbnails). Pages react to the hook's `pdf` reference changing (to seed their own state) and to `status` becoming `"loading"` (to clear their own result/error banners), the same way they already reacted to local `pdf` state before.
+
+**Used by:** `CompressionToolPage`, `SplitToolPage`, `PageEditorPage`, `PdfToImagesPage`, `SignaturesToolPage`, `PdfViewerPage`.
+
+**Not used by Merge.** `MergeToolPage` holds a _list_ of documents via the `pdfAssets` store (see State Management above), a genuinely different shape — forcing it through a single-document hook would have meant turning `useLoadedPdf` into a multi-document manager just to fit one caller. It reuses `usePasswordPrompt` directly instead, since that piece (and only that piece) was duplicated identically across every tool including Merge.
 
 ---
 

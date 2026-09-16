@@ -5,7 +5,6 @@ import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { configurePdfWorker } from "../lib/pdfWorker";
 import {
   COMPRESSION_PRESETS,
   compressPdfWithPreset,
@@ -15,8 +14,9 @@ import {
 } from "../lib/pdfCompression";
 import { formatBytes, formatTimestamp } from "../lib/format";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { logExportResult } from "../state/activityLog";
-import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
+import type { LoadedPdf } from "../lib/pdfLoader";
 
 const baseGuardrails = [
   "Files never leave your device—compression happens entirely in this tab.",
@@ -36,89 +36,40 @@ const formatPageSize = (pageSize: LoadedPdf["metadata"]["pageSize"]) => {
 };
 
 const CompressionToolPage = () => {
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    pdf,
+    status,
+    error: loadError,
+    passwordPrompt,
+    loadFile,
+    reset: resetPdf,
+    clearError: clearLoadError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
   const [compressionError, setCompressionError] = useState<string | null>(null);
   const [compressionSuccess, setCompressionSuccess] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<CompressionResult | null>(null);
   const [presetId, setPresetId] = useState<CompressionPresetId>("balanced");
   const [isCompressing, setCompressing] = useState(false);
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
 
+  // A new load (including a replace) clears this tool's own result/error
+  // banners the moment it starts, matching the timing of the old inline
+  // clearing at the top of loadFile.
   useEffect(() => {
-    configurePdfWorker();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      pdf?.doc.destroy();
-    };
-  }, [pdf]);
+    if (status === "loading") {
+      setCompressionError(null);
+      setCompressionSuccess(null);
+      setLastResult(null);
+    }
+  }, [status]);
 
   const resetWorkspace = useCallback(() => {
-    pdf?.doc.destroy();
-    setPdf(null);
-    setStatus("idle");
-    setLoadError(null);
+    resetPdf();
     setCompressionError(null);
     setCompressionSuccess(null);
     setLastResult(null);
-  }, [pdf]);
-
-  const requestPassword = useCallback(
-    (fileName: string) => (reason: PdfPasswordReason) =>
-      new Promise<string | null>((resolve) => {
-        setPasswordPrompt({ fileName, reason, resolve });
-      }),
-    [],
-  );
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
-
-  const loadFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) {
-        return;
-      }
-
-      setStatus("loading");
-      setLoadError(null);
-      setCompressionError(null);
-      setCompressionSuccess(null);
-
-      try {
-        pdf?.doc.destroy();
-        const { loadPdfFromFile } = await import("../lib/pdfLoader");
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: requestPassword(file.name),
-        });
-        setPdf(loaded);
-        setStatus("ready");
-      } catch (loadProblem) {
-        console.error("Failed to load PDF for compression", loadProblem);
-        setPdf(null);
-        setStatus("error");
-        setLoadError(getFriendlyPdfError(loadProblem));
-      }
-    },
-    [pdf, requestPassword],
-  );
+  }, [resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
@@ -231,7 +182,7 @@ const CompressionToolPage = () => {
       ) : null}
 
       {loadError ? (
-        <Alert variant="error" onDismiss={() => setLoadError(null)}>
+        <Alert variant="error" onDismiss={clearLoadError}>
           {loadError}
         </Alert>
       ) : null}
@@ -411,8 +362,8 @@ const CompressionToolPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
 
       {isCompressing ? (

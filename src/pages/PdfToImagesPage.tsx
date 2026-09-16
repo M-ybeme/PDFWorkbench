@@ -6,9 +6,9 @@ import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { buildDownloadName } from "../lib/documentPipeline";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { configurePdfWorker } from "../lib/pdfWorker";
 import { formatBytes, formatTimestamp } from "../lib/format";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { logExportResult } from "../state/activityLog";
 import {
   renderAllPagesToImages,
@@ -16,7 +16,6 @@ import {
   type ImageFormat,
   type ImageScale,
 } from "../lib/pdfToImages";
-import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
 
 const FORMAT_OPTIONS: { id: ImageFormat; label: string }[] = [
   { id: "png", label: "PNG" },
@@ -30,9 +29,17 @@ const SCALE_OPTIONS: { id: ImageScale; label: string; description: string }[] = 
 ];
 
 const PdfToImagesPage = () => {
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    pdf,
+    status,
+    error: loadError,
+    passwordPrompt,
+    loadFile,
+    reset: resetPdf,
+    clearError: clearLoadError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const [format, setFormat] = useState<ImageFormat>("png");
@@ -40,81 +47,24 @@ const PdfToImagesPage = () => {
   const [jpegQuality, setJpegQuality] = useState(0.92);
   const [isExporting, setExporting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
 
+  // A new load (including a replace) clears this tool's own result/error
+  // banners the moment it starts, matching the old inline clearing at the
+  // top of loadFile.
   useEffect(() => {
-    configurePdfWorker();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      pdf?.doc.destroy();
-    };
-  }, [pdf]);
+    if (status === "loading") {
+      setExportError(null);
+      setExportSuccess(null);
+      setProgress({ done: 0, total: 0 });
+    }
+  }, [status]);
 
   const resetWorkspace = useCallback(() => {
-    pdf?.doc.destroy();
-    setPdf(null);
-    setStatus("idle");
-    setLoadError(null);
+    resetPdf();
     setExportError(null);
     setExportSuccess(null);
     setProgress({ done: 0, total: 0 });
-  }, [pdf]);
-
-  const requestPassword = useCallback(
-    (fileName: string) => (reason: PdfPasswordReason) =>
-      new Promise<string | null>((resolve) => {
-        setPasswordPrompt({ fileName, reason, resolve });
-      }),
-    [],
-  );
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
-
-  const loadFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) {
-        return;
-      }
-
-      setStatus("loading");
-      setLoadError(null);
-      setExportError(null);
-      setExportSuccess(null);
-
-      try {
-        pdf?.doc.destroy();
-        const { loadPdfFromFile } = await import("../lib/pdfLoader");
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: requestPassword(file.name),
-        });
-        setPdf(loaded);
-        setStatus("ready");
-      } catch (loadProblem) {
-        console.error("Failed to load PDF for image export", loadProblem);
-        setPdf(null);
-        setStatus("error");
-        setLoadError(getFriendlyPdfError(loadProblem));
-      }
-    },
-    [pdf, requestPassword],
-  );
+  }, [resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
@@ -234,7 +184,7 @@ const PdfToImagesPage = () => {
       ) : null}
 
       {loadError ? (
-        <Alert variant="error" onDismiss={() => setLoadError(null)}>
+        <Alert variant="error" onDismiss={clearLoadError}>
           {loadError}
         </Alert>
       ) : null}
@@ -437,8 +387,8 @@ const PdfToImagesPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
     </div>
   );

@@ -4,6 +4,26 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.2] — 2026-09-16
+
+### Fixed
+
+- **PDF documents were never released on navigation away from the Viewer or Signatures tools** — both pages destroyed the loaded pdf.js document on explicit reset/replace, but not on unmount, leaking it every time the user navigated to another tool without clicking "Clear file" first.
+- **Replacing a file while an earlier load was still in flight could leak the newer document** — if a slower, now-superseded load resolved after a newer one had already been selected, "last selected wins" depended on resolution order rather than selection order, and the winning document's `doc` was never destroyed. A monotonic request token now discards a superseded load's result and destroys its document immediately if it had already succeeded.
+- **A failed dynamic import of the PDF loader module stayed cached forever** — one rejection (a stale chunk hash after a deploy, a transient network blip) would permanently break every subsequent PDF load for the rest of the tab's life. The cache now clears itself on a failed import so the next load attempt tries again.
+- **Unmounting while a password prompt was open left that load suspended forever** — `useLoadedPdf()` now cancels any pending password prompt on unmount, and `usePasswordPrompt()` resolves through a ref rather than a `setState` updater, since React does not run functional updaters for a component that's already unmounting.
+
+### Improved
+
+- **Centralized PDF loading** — the load/password-retry/replace/reset/cleanup state machine, previously duplicated across `CompressionToolPage`, `SplitToolPage`, `PageEditorPage`, `PdfToImagesPage`, `SignaturesToolPage`, and `PdfViewerPage`, is now a single `useLoadedPdf()` hook (`src/hooks/useLoadedPdf.ts`), plus a small `usePasswordPrompt()` hook it composes internally and that `MergeToolPage` reuses directly. ~480 lines of duplicated state/effects/handlers removed. No page layout, workflow, or export behavior changed.
+- `pdfLoader.ts`'s dynamic import is cached at module scope (one `import()` for the whole app) instead of once per load call, via a small generic `createLazyModule()` helper (`src/hooks/pdfLoaderModule.ts`).
+
+### Tests
+
+- 19 focused tests for `useLoadedPdf`/`usePasswordPrompt`/`pdfLoaderModule` covering load, replacement, reset, unmount, the full password-retry flow, a superseded concurrent load, friendly-error mapping, import-cache recovery after a failure, and password-prompt cancellation on unmount — using a mocked loader boundary rather than real PDFs.
+
+---
+
 ## [1.0.1] — 2026-09-15
 
 ### Fixed

@@ -5,8 +5,6 @@ import Alert from "../components/Alert";
 import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
-import { configurePdfWorker } from "../lib/pdfWorker";
 import { buildEditedPdfFileName } from "../lib/fileNames";
 import {
   applyPageEdits,
@@ -16,6 +14,7 @@ import {
 } from "../lib/pdfEdit";
 import { type ExportResult } from "../lib/documentPipeline";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { logExportResult } from "../state/activityLog";
 
 const THUMBNAIL_SCALE = 0.22;
@@ -55,32 +54,35 @@ const pagesChanged = (a: EditablePage[], b: EditablePage[]) => {
 };
 
 const PageEditorPage = () => {
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const {
+    pdf,
+    status,
+    error,
+    passwordPrompt,
+    loadFile,
+    reset: resetPdf,
+    clearError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
   const [pages, setPages] = useState<EditablePage[]>([]);
   const [history, setHistory] = useState<EditablePage[][]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [isDownloading, setDownloading] = useState(false);
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
 
   const dragSourceId = useRef<string | null>(null);
 
+  // A new load (including a replace) clears these tool-specific banners
+  // the moment it starts, matching the old inline clearing at the top of
+  // loadFile.
   useEffect(() => {
-    configurePdfWorker();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      pdf?.doc.destroy();
-    };
-  }, [pdf]);
+    if (status === "loading") {
+      setDownloadError(null);
+      setDownloadSuccess(null);
+    }
+  }, [status]);
 
   useEffect(() => {
     if (!pdf) {
@@ -152,58 +154,10 @@ const PageEditorPage = () => {
   }, [pdf]);
 
   const resetWorkspace = useCallback(() => {
-    pdf?.doc.destroy();
-    setPdf(null);
-    setStatus("idle");
-    setError(null);
-    setPages([]);
-    setThumbnails({});
-    setHistory([]);
+    resetPdf();
     setDownloadError(null);
     setDownloadSuccess(null);
-  }, [pdf]);
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
-
-  const loadFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) return;
-      setStatus("loading");
-      setError(null);
-      setDownloadError(null);
-      setDownloadSuccess(null);
-
-      try {
-        pdf?.doc.destroy();
-        const { loadPdfFromFile } = await import("../lib/pdfLoader");
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: (reason) =>
-            new Promise<string | null>((resolve) => {
-              setPasswordPrompt({ fileName: file.name, reason, resolve });
-            }),
-        });
-        setPdf(loaded);
-        setStatus("ready");
-      } catch (loadError) {
-        console.error(loadError);
-        setPdf(null);
-        setStatus("error");
-        setError(getFriendlyPdfError(loadError));
-      }
-    },
-    [pdf],
-  );
+  }, [resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
@@ -411,7 +365,7 @@ const PageEditorPage = () => {
       </div>
 
       {error ? (
-        <Alert variant="error" onDismiss={() => setError(null)}>
+        <Alert variant="error" onDismiss={clearError}>
           {error}
         </Alert>
       ) : null}
@@ -590,8 +544,8 @@ const PageEditorPage = () => {
           open={Boolean(passwordPrompt)}
           fileName={passwordPrompt.fileName}
           reason={passwordPrompt.reason}
-          onSubmit={handlePasswordSubmit}
-          onCancel={handlePasswordCancel}
+          onSubmit={submitPassword}
+          onCancel={cancelPassword}
         />
       ) : null}
     </div>

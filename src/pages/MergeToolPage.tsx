@@ -7,48 +7,26 @@ import { triggerBlobDownload } from "../lib/downloads";
 import { formatBytes, formatTimestamp } from "../lib/format";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { mergeLoadedPdfsToExportResult } from "../lib/pdfMerge";
-import { type PdfPasswordReason } from "../lib/pdfLoader";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { usePasswordPrompt } from "../hooks/usePasswordPrompt";
 import { logExportResult } from "../state/activityLog";
 import { usePdfAssets } from "../state/pdfAssets";
 
+// Merge holds a list of documents via the pdfAssets store, a genuinely
+// different shape from the single-document useLoadedPdf hook — see
+// docs/ARCHITECTURE.md. It reuses just the password-prompt piece.
 const MergeToolPage = () => {
   const { assets, isBusy, error, addAsset, removeAsset, reorderAssets, clearError } =
     usePdfAssets();
+  const { passwordPrompt, requestPassword, submitPassword, cancelPassword } = usePasswordPrompt();
   const [isMerging, setIsMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [mergeSuccess, setMergeSuccess] = useState<string | null>(null);
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
 
   const dismissMergeAlerts = useCallback(() => {
     setMergeError(null);
     setMergeSuccess(null);
   }, []);
-
-  const requestPassword = useCallback(
-    (fileName: string) => (reason: PdfPasswordReason) =>
-      new Promise<string | null>((resolve) => {
-        setPasswordPrompt({ fileName, reason, resolve });
-      }),
-    [],
-  );
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
 
   const ingestFiles = useCallback(
     (files: FileList) => {
@@ -252,8 +230,8 @@ const MergeToolPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
     </div>
   );

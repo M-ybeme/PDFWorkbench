@@ -8,11 +8,9 @@ import SearchBar from "../components/SearchBar";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { usePdfTextSearch } from "../hooks/usePdfTextSearch";
 import { formatBytes, formatTimestamp } from "../lib/format";
-import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { configurePdfWorker } from "../lib/pdfWorker";
-import { loadPdfFromFile, type LoadedPdf, type PdfPasswordReason } from "../lib/pdfLoader";
 
 const isPdf = (file: File) => {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -83,7 +81,6 @@ const formatPermissions = (permissions?: number[] | null) => {
   return `Allowed: ${labels.join(", ")}`;
 };
 
-type ViewerStatus = "idle" | "loading" | "ready" | "error";
 type ThumbnailStatus = "idle" | "rendering" | "ready";
 
 type Thumbnail = {
@@ -98,18 +95,25 @@ type CachedRender = {
 };
 
 const PdfViewerPage = () => {
-  const [status, setStatus] = useState<ViewerStatus>("idle");
+  const {
+    pdf,
+    status,
+    error: loadError,
+    passwordPrompt,
+    loadFile: loadPdfFile,
+    reset: resetPdf,
+    clearError: clearLoadError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
+  // Render failures and the viewer's own "must be a PDF" pre-check are
+  // page-specific, separate from the hook's own load error — combined in
+  // the single Alert below.
   const [error, setError] = useState<string | null>(null);
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [thumbnailStatus, setThumbnailStatus] = useState<ThumbnailStatus>("idle");
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
   const [isFullscreen, setFullscreen] = useState(false);
   const [isSearchOpen, setSearchOpen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
@@ -168,10 +172,6 @@ const PdfViewerPage = () => {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pageCacheRef = useRef<Map<string, CachedRender>>(new Map());
-
-  useEffect(() => {
-    configurePdfWorker();
-  }, []);
 
   useEffect(() => {
     const cache = pageCacheRef.current;
@@ -351,68 +351,36 @@ const PdfViewerPage = () => {
     };
   }, [pdf]);
 
-  const reset = useCallback(() => {
-    pdf?.doc.destroy();
-    setPdf(null);
+  // Once a new document lands (or is cleared), reset the viewer's own view
+  // state — the thumbnail/cache-clearing effects above already react to
+  // [pdf] the same way, so this just covers what they don't.
+  useEffect(() => {
     setCurrentPage(1);
     setZoom(1);
-    setStatus("idle");
-    setError(null);
-    setThumbnails([]);
-    setThumbnailStatus("idle");
-    pageCacheRef.current.clear();
   }, [pdf]);
 
+  const reset = useCallback(() => {
+    resetPdf();
+    setError(null);
+  }, [resetPdf]);
+
   const loadFile = useCallback(
-    async (file: File | null | undefined) => {
+    (file: File | null | undefined) => {
       if (!file) return;
       if (!isPdf(file)) {
-        setStatus("error");
         setError("Please choose a valid PDF file.");
         return;
       }
 
-      setStatus("loading");
       setError(null);
-
-      try {
-        pdf?.doc.destroy();
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: (reason) =>
-            new Promise<string | null>((resolve) => {
-              setPasswordPrompt({ fileName: file.name, reason, resolve });
-            }),
-        });
-        setPdf(loaded);
-        setCurrentPage(1);
-        setZoom(1);
-        setStatus("ready");
-      } catch (loadError) {
-        console.error(loadError);
-        setStatus("error");
-        setPdf(null);
-        setError(getFriendlyPdfError(loadError));
-      }
+      void loadPdfFile(file);
     },
-    [pdf],
+    [loadPdfFile],
   );
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
-      void loadFile(files[0]);
+      loadFile(files[0]);
     },
     [loadFile],
   );
@@ -702,9 +670,15 @@ const PdfViewerPage = () => {
             </p>
           </div>
 
-          {error ? (
-            <Alert variant="error" onDismiss={() => setError(null)}>
-              {error}
+          {error || loadError ? (
+            <Alert
+              variant="error"
+              onDismiss={() => {
+                setError(null);
+                clearLoadError();
+              }}
+            >
+              {error || loadError}
             </Alert>
           ) : null}
 
@@ -810,8 +784,8 @@ const PdfViewerPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
       {isFullscreen && pdf && typeof document !== "undefined"
         ? createPortal(

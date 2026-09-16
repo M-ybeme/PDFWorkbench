@@ -22,8 +22,6 @@ import SignatureRibbon, {
 } from "../components/signatures/SignatureRibbon";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { configurePdfWorker } from "../lib/pdfWorker";
-import { loadPdfFromFile, type LoadedPdf, type PdfPasswordReason } from "../lib/pdfLoader";
 import { stampSignaturesToExportResult } from "../lib/signatureStamp";
 import {
   SIGNATURE_DISCLAIMER_COPY,
@@ -40,17 +38,10 @@ import {
   type TextPlacement,
 } from "../lib/signaturePlacement";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { logExportResult } from "../state/activityLog";
 import { useSignatureLibrary } from "../state/signatureLibrary";
 import { buildFileKey, useSignatureSession } from "../state/signatureSession";
-
-type SignaturesStatus = "idle" | "loading" | "ready" | "error";
-
-type PasswordPromptState = {
-  fileName: string;
-  reason: PdfPasswordReason;
-  resolve: (value: string | null) => void;
-};
 
 type DragSession = {
   target: "signature" | "text";
@@ -82,9 +73,20 @@ const SignaturesToolPage = () => {
   const markUsed = useSignatureLibrary((state) => state.markUsed);
   const sessionStore = useSignatureSession();
 
-  const [status, setStatus] = useState<SignaturesStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
+  const {
+    pdf,
+    status,
+    error: loadError,
+    passwordPrompt,
+    loadFile: loadPdfFile,
+    clearError: clearLoadError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
+  // Render failures are a page-specific concern (the canvas render effect
+  // below), separate from the hook's own load error — see the combined
+  // Alert in the JSX.
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({
@@ -101,7 +103,6 @@ const SignaturesToolPage = () => {
   const [textToolError, setTextToolError] = useState<string | null>(null);
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [passwordPrompt, setPasswordPrompt] = useState<PasswordPromptState | null>(null);
   const [isStamping, setStamping] = useState(false);
   const [isBuilderOpen, setBuilderOpen] = useState(false);
   const [symbolPreset, setSymbolPreset] = useState<SymbolPreset>(SYMBOL_PRESETS[0]!);
@@ -121,10 +122,6 @@ const SignaturesToolPage = () => {
   const isDrawingRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileKeyRef = useRef<string>("");
-
-  useEffect(() => {
-    configurePdfWorker();
-  }, []);
 
   useEffect(() => {
     if (signatures.length === 0) {
@@ -186,10 +183,10 @@ const SignaturesToolPage = () => {
         renderTaskRef.current = task;
         await task.promise;
         page.cleanup();
-      } catch (renderError) {
+      } catch (pageRenderError) {
         if (!cancelled) {
-          console.error(renderError);
-          setError(getFriendlyPdfError(renderError));
+          console.error(pageRenderError);
+          setRenderError(getFriendlyPdfError(pageRenderError));
         }
       }
     };
@@ -201,7 +198,7 @@ const SignaturesToolPage = () => {
       renderTaskRef.current?.cancel();
       renderTaskRef.current = null;
     };
-  }, [currentPage, pdf, setError, zoom]);
+  }, [currentPage, pdf, zoom]);
 
   const signatureMap = useMemo(() => {
     const map = new Map<string, (typeof signatures)[number]>();
@@ -234,27 +231,11 @@ const SignaturesToolPage = () => {
     (placements.length > 0 || textPlacements.length > 0 || strokes.length > 0) &&
     !isStamping;
 
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
-
-  const loadFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) {
-        return;
-      }
-
-      setStatus("loading");
-      setError(null);
+  // A new load (including a replace) clears this tool's placement/history
+  // state and stale banners the moment it starts, matching the old inline
+  // clearing at the top of loadFile.
+  useEffect(() => {
+    if (status === "loading") {
       setPlacements([]);
       setTextPlacements([]);
       setStrokes([]);
@@ -265,48 +246,35 @@ const SignaturesToolPage = () => {
       setActiveTool("signature");
       setTextToolError(null);
       setTextDraft((draft) => ({ ...draft, text: "" }));
+      setRenderError(null);
+    }
+  }, [status]);
 
-      try {
-        pdf?.doc.destroy();
-      } catch {
-        // ignore
-      }
+  // Once a new document lands, reset the view and restore any in-progress
+  // session for this exact file (matching the old post-success behavior).
+  useEffect(() => {
+    if (!pdf) {
+      return;
+    }
 
-      try {
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: (reason) =>
-            new Promise<string | null>((resolve) => {
-              setPasswordPrompt({ fileName: file.name, reason, resolve });
-            }),
-        });
-        setPdf(loaded);
-        setStatus("ready");
-        setCurrentPage(1);
-        setZoom(1);
+    setCurrentPage(1);
+    setZoom(1);
 
-        const key = buildFileKey(file.name, file.size);
-        fileKeyRef.current = key;
-        const session = useSignatureSession.getState();
-        if (session.fileKey === key) {
-          setPlacements(session.placements);
-          setTextPlacements(session.textPlacements);
-          setStrokes(session.strokes);
-        }
-      } catch (loadError) {
-        console.error(loadError);
-        setPdf(null);
-        setStatus("error");
-        setError(getFriendlyPdfError(loadError));
-      }
-    },
-    [pdf],
-  );
+    const key = buildFileKey(pdf.name, pdf.size);
+    fileKeyRef.current = key;
+    const session = useSignatureSession.getState();
+    if (session.fileKey === key) {
+      setPlacements(session.placements);
+      setTextPlacements(session.textPlacements);
+      setStrokes(session.strokes);
+    }
+  }, [pdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
-      void loadFile(files[0] ?? null);
+      void loadPdfFile(files[0] ?? null);
     },
-    [loadFile],
+    [loadPdfFile],
   );
 
   const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
@@ -832,9 +800,15 @@ const SignaturesToolPage = () => {
         </div>
       </div>
 
-      {error ? (
-        <Alert variant="error" onDismiss={() => setError(null)}>
-          {error}
+      {renderError || loadError ? (
+        <Alert
+          variant="error"
+          onDismiss={() => {
+            setRenderError(null);
+            clearLoadError();
+          }}
+        >
+          {renderError || loadError}
         </Alert>
       ) : null}
 
@@ -1243,8 +1217,8 @@ const SignaturesToolPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
     </div>
   );

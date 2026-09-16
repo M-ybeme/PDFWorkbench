@@ -15,12 +15,11 @@ import {
   extractPagesFromLoadedPdf,
   splitPdfByChunkSize,
 } from "../lib/pdfSplit";
-import type { LoadedPdf, PdfPasswordReason } from "../lib/pdfLoader";
-import { configurePdfWorker } from "../lib/pdfWorker";
 import { logExportResult } from "../state/activityLog";
 import { type ExportResult } from "../lib/documentPipeline";
 import { formatBytes } from "../lib/format";
 import { useDragDrop } from "../hooks/useDragDrop";
+import { useLoadedPdf } from "../hooks/useLoadedPdf";
 
 const THUMBNAIL_SCALE = 0.22;
 
@@ -38,9 +37,17 @@ const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
 };
 
 const SplitToolPage = () => {
-  const [pdf, setPdf] = useState<LoadedPdf | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const {
+    pdf,
+    status,
+    error,
+    passwordPrompt,
+    loadFile,
+    reset: resetPdf,
+    clearError,
+    submitPassword,
+    cancelPassword,
+  } = useLoadedPdf();
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [thumbnailStatus, setThumbnailStatus] = useState<ThumbnailStatus>("idle");
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
@@ -51,20 +58,22 @@ const SplitToolPage = () => {
   const [bundleSuccess, setBundleSuccess] = useState<string | null>(null);
   const [isSelectionDownloading, setSelectionDownloading] = useState(false);
   const [isBundleDownloading, setBundleDownloading] = useState(false);
-  const [passwordPrompt, setPasswordPrompt] = useState<{
-    fileName: string;
-    reason: PdfPasswordReason;
-    resolve: (value: string | null) => void;
-  } | null>(null);
+
+  // A new load (including a replace) clears these tool-specific banners
+  // the moment it starts, matching the old inline clearing at the top of
+  // loadFile. Page selection itself is reset separately below, once the
+  // new pdf actually lands (matching the old post-success behavior).
+  useEffect(() => {
+    if (status === "loading") {
+      setSelectionError(null);
+      setSelectionSuccess(null);
+      setBundleError(null);
+      setBundleSuccess(null);
+    }
+  }, [status]);
 
   useEffect(() => {
-    configurePdfWorker();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      pdf?.doc.destroy();
-    };
+    setSelectedPages(new Set());
   }, [pdf]);
 
   useEffect(() => {
@@ -135,63 +144,12 @@ const SplitToolPage = () => {
   }, [pdf]);
 
   const resetWorkspace = useCallback(() => {
-    pdf?.doc.destroy();
-    setPdf(null);
-    setStatus("idle");
-    setError(null);
-    setSelectedPages(new Set());
-    setThumbnails([]);
-    setThumbnailStatus("idle");
+    resetPdf();
     setSelectionError(null);
     setSelectionSuccess(null);
     setBundleError(null);
     setBundleSuccess(null);
-  }, [pdf]);
-
-  const handlePasswordSubmit = useCallback(
-    (password: string) => {
-      passwordPrompt?.resolve(password);
-      setPasswordPrompt(null);
-    },
-    [passwordPrompt],
-  );
-
-  const handlePasswordCancel = useCallback(() => {
-    passwordPrompt?.resolve(null);
-    setPasswordPrompt(null);
-  }, [passwordPrompt]);
-
-  const loadFile = useCallback(
-    async (file: File | null | undefined) => {
-      if (!file) return;
-      setStatus("loading");
-      setError(null);
-      setSelectionError(null);
-      setSelectionSuccess(null);
-      setBundleError(null);
-      setBundleSuccess(null);
-
-      try {
-        pdf?.doc.destroy();
-        const { loadPdfFromFile } = await import("../lib/pdfLoader");
-        const loaded = await loadPdfFromFile(file, {
-          requestPassword: (reason) =>
-            new Promise<string | null>((resolve) => {
-              setPasswordPrompt({ fileName: file.name, reason, resolve });
-            }),
-        });
-        setPdf(loaded);
-        setSelectedPages(new Set());
-        setStatus("ready");
-      } catch (loadError) {
-        console.error(loadError);
-        setPdf(null);
-        setStatus("error");
-        setError(getFriendlyPdfError(loadError));
-      }
-    },
-    [pdf],
-  );
+  }, [resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
@@ -392,7 +350,7 @@ const SplitToolPage = () => {
       </div>
 
       {error ? (
-        <Alert variant="error" onDismiss={() => setError(null)}>
+        <Alert variant="error" onDismiss={clearError}>
           {error}
         </Alert>
       ) : null}
@@ -629,8 +587,8 @@ const SplitToolPage = () => {
         open={Boolean(passwordPrompt)}
         fileName={passwordPrompt?.fileName ?? ""}
         reason={passwordPrompt?.reason ?? "password-required"}
-        onSubmit={handlePasswordSubmit}
-        onCancel={handlePasswordCancel}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
     </div>
   );

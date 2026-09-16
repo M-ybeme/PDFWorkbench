@@ -40,7 +40,7 @@ const LandingPage = () => {
     <div className="space-y-12">
       <section className="gradient-card overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-10 shadow-2xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-slate-900/50">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">
-          v1.0.1
+          v1.0.2
           <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
           Stable
         </p>
@@ -54,7 +54,7 @@ const LandingPage = () => {
           images—entirely offline.
         </p>
         <p className="mt-4 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          v1.0.1 — all eight tools are stable and production-ready. 141 unit tests and full
+          v1.0.2 — all eight tools are stable and production-ready. 157 unit tests and full
           Playwright E2E coverage. Zero server round-trips; all processing happens in your browser.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
@@ -96,7 +96,7 @@ const LandingPage = () => {
       <section className="grid gap-6">
         <article className="rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-xl shadow-slate-200/40 dark:border-white/10 dark:bg-slate-900/70">
           <p className="text-xs uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-            v1.0.1 — Stable
+            v1.0.2 — Stable
           </p>
           <h2 className="mt-3 font-display text-3xl font-semibold text-slate-900 dark:text-white">
             What&rsquo;s in the box?
@@ -131,7 +131,7 @@ const LandingPage = () => {
               trapping, and ARIA roles across all modals
             </li>
             <li>
-              ✅ 141 unit tests, Playwright E2E coverage, password prompts, activity log, and
+              ✅ 157 unit tests, Playwright E2E coverage, password prompts, activity log, and
               light/dark theming
             </li>
           </ul>
