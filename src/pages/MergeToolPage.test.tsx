@@ -23,8 +23,8 @@ import type { LoadedPdf } from "../lib/pdfLoader";
 
 describe("MergeToolPage", () => {
   beforeEach(() => {
-    usePdfAssets.getState().reset();
-    useActivityLog.getState().reset();
+    usePdfAssets.setState({ assets: [], isBusy: false, error: null });
+    useActivityLog.getState().clear();
   });
 
   it("renders the merge instructions", () => {

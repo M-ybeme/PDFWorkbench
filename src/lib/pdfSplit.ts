@@ -1,14 +1,9 @@
 import { PDFDocument } from "pdf-lib";
 import JSZip from "jszip";
 
+import { cloneBytesToArrayBuffer } from "./bytes";
 import { PdfLoadError } from "./pdfErrors";
 import type { LoadedPdf } from "./pdfLoader";
-
-const cloneToArrayBuffer = (source: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(source.byteLength);
-  new Uint8Array(buffer).set(source);
-  return buffer;
-};
 
 const normalizePages = (pageNumbers: number[], pageCount: number) => {
   const sanitized = Array.from(
@@ -110,7 +105,7 @@ export const buildZipFromEntries = async (entries: ZipEntry[]): Promise<ArrayBuf
     });
     const archive = await zip.generateAsync({ type: "uint8array" });
     // Copy into a standalone ArrayBuffer so Blob never sees a SharedArrayBuffer-backed view.
-    return cloneToArrayBuffer(archive);
+    return cloneBytesToArrayBuffer(archive);
   } catch (error) {
     console.error("Failed to build zip archive from split documents", error);
     throw new PdfLoadError("unknown");

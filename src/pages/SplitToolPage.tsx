@@ -15,6 +15,7 @@ import {
   extractPagesFromLoadedPdf,
   splitPdfByChunkSize,
 } from "../lib/pdfSplit";
+import { cloneBytesToArrayBuffer } from "../lib/bytes";
 import { logExportResult } from "../state/activityLog";
 import { type ExportResult } from "../lib/documentPipeline";
 import { formatBytes } from "../lib/format";
@@ -29,12 +30,6 @@ type ThumbnailStatus = "idle" | "rendering" | "ready";
 type Thumbnail = {
   pageNumber: number;
   url: string;
-};
-
-const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-  return buffer;
 };
 
 const SplitToolPage = () => {

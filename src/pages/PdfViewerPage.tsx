@@ -10,12 +10,9 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { usePdfTextSearch } from "../hooks/usePdfTextSearch";
+import { isPdf } from "../lib/documentPipeline";
 import { formatBytes, formatTimestamp } from "../lib/format";
 import { renderThumbnails } from "../lib/pdfThumbnails";
-
-const isPdf = (file: File) => {
-  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-};
 
 const ZOOM_STEP = 0.1;
 const MIN_ZOOM = 0.5;

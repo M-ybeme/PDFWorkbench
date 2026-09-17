@@ -28,7 +28,6 @@ type SignatureLibraryState = {
   renameSignature: (id: string, label: string) => void;
   deleteSignature: (id: string) => void;
   markUsed: (id: string) => void;
-  reset: () => void;
 };
 
 const MAX_SIGNATURES = 10;
@@ -85,7 +84,6 @@ export const useSignatureLibrary = create<SignatureLibraryState>()(
             signature.id === id ? { ...signature, lastUsedAt: Date.now() } : signature,
           ),
         })),
-      reset: () => set({ signatures: [] }),
     }),
     {
       name: "pdf-workbench-signatures",

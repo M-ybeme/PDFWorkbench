@@ -1,7 +1,5 @@
-import { sanitizeFileStem } from "./fileNames";
+import { sanitizeFileStem, timestampToken } from "./fileNames";
 import { createLocalId } from "./ids";
-
-const timestampToken = () => new Date().toISOString().replace(/[:.]/g, "-");
 
 export type PdfSourceOrigin = "upload" | "drag-drop" | "generated" | "url";
 
@@ -38,6 +36,9 @@ export type ExportResult = {
     detail?: string;
   };
 };
+
+export const isPdf = (file: File) =>
+  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
 export const createPdfSourceFromFile = async (
   file: File,

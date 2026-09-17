@@ -69,7 +69,7 @@ const createDeferred = <T,>() => {
 
 describe("SplitToolPage", () => {
   beforeEach(() => {
-    useActivityLog.getState().reset();
+    useActivityLog.getState().clear();
     vi.clearAllMocks();
     mockUseLoadedPdfState = idleHookState;
   });

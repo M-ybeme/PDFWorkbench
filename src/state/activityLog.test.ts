@@ -5,7 +5,7 @@ import { type ExportResult } from "../lib/documentPipeline";
 
 describe("useActivityLog", () => {
   beforeEach(() => {
-    useActivityLog.getState().reset();
+    useActivityLog.getState().clear();
     if (typeof window !== "undefined") {
       window.localStorage?.clear();
     }

@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 
+import { cloneBytesToArrayBuffer } from "./bytes";
 import { PdfLoadError } from "./pdfErrors";
 import type { LoadedPdf } from "./pdfLoader";
 
@@ -98,12 +99,6 @@ export const renderAllPagesToImages = async (
   return images;
 };
 
-const cloneToArrayBuffer = (source: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(source.byteLength);
-  new Uint8Array(buffer).set(source);
-  return buffer;
-};
-
 export const bundleImagesAsZip = async (images: RenderedPageImage[]): Promise<Blob> => {
   if (images.length === 0) {
     throw new PdfLoadError("unsupported", "No images to bundle.");
@@ -117,5 +112,5 @@ export const bundleImagesAsZip = async (images: RenderedPageImage[]): Promise<Bl
   }
 
   const archive = await zip.generateAsync({ type: "uint8array" });
-  return new Blob([cloneToArrayBuffer(archive)], { type: "application/zip" });
+  return new Blob([cloneBytesToArrayBuffer(archive)], { type: "application/zip" });
 };

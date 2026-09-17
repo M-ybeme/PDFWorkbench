@@ -6,6 +6,7 @@ import PasswordPromptModal from "../components/PasswordPromptModal";
 import { triggerBlobDownload } from "../lib/downloads";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { buildEditedPdfFileName } from "../lib/fileNames";
+import { cloneBytesToArrayBuffer } from "../lib/bytes";
 import {
   applyPageEdits,
   buildEditablePageId,
@@ -22,12 +23,6 @@ const THUMBNAIL_SCALE = 0.22;
 const HISTORY_LIMIT = 20;
 
 const snapshotPages = (pages: EditablePage[]) => pages.map((page) => ({ ...page }));
-
-const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-  return buffer;
-};
 
 const pagesChanged = (a: EditablePage[], b: EditablePage[]) => {
   if (a.length !== b.length) {

@@ -35,7 +35,6 @@ type ActivityLogState = {
   entries: ActivityEntry[];
   addEntry: (payload: ActivityPayload) => void;
   clear: () => void;
-  reset: () => void;
 };
 
 export const useActivityLog = create<ActivityLogState>()(
@@ -56,7 +55,6 @@ export const useActivityLog = create<ActivityLogState>()(
           return { entries };
         }),
       clear: () => set({ entries: [] }),
-      reset: () => set({ entries: [] }),
     }),
     {
       name: "pdf-workbench-activity",

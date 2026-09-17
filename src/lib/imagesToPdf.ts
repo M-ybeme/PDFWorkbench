@@ -1,5 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 
+import { cloneBytesToArrayBuffer } from "./bytes";
 import { type ExportResult } from "./documentPipeline";
 import { buildImagesPdfFileName } from "./fileNames";
 import { createLocalId } from "./ids";
@@ -52,12 +53,6 @@ export const ensureValidImageDimensions = (
     "unsupported",
     `"${fileName}" could not be read as an image — it may be corrupted or in an unsupported format.`,
   );
-};
-
-const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-  return buffer;
 };
 
 const loadDataUrl = (file: File) =>

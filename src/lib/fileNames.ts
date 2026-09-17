@@ -8,7 +8,7 @@ const sanitize = (value: string) =>
 
 const fallbackStem = (prefix: string) => `${prefix}-${new Date().toISOString().slice(0, 10)}`;
 
-const timestampToken = () => new Date().toISOString().replace(/[:.]/g, "-");
+export const timestampToken = () => new Date().toISOString().replace(/[:.]/g, "-");
 
 export const sanitizeFileStem = (value: string, fallbackPrefix = "document") => {
   const sanitized = sanitize(value);

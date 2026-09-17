@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { configurePdfWorker } from "../lib/pdfWorker";
 import { loadPdfFromSource, type LoadPdfOptions, type LoadedPdf } from "../lib/pdfLoader";
 import { getFriendlyPdfError } from "../lib/pdfErrors";
-import { createPdfSourceFromFile, type PdfSource } from "../lib/documentPipeline";
+import { createPdfSourceFromFile, isPdf, type PdfSource } from "../lib/documentPipeline";
 
 export type PdfAsset = {
   id: string;
@@ -21,11 +21,7 @@ type PdfAssetState = {
   removeAsset: (id: string) => void;
   reorderAssets: (fromIndex: number, toIndex: number) => void;
   clearError: () => void;
-  reset: () => void;
 };
-
-const isPdf = (file: File) =>
-  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
 const reorder = <T>(list: T[], fromIndex: number, toIndex: number): T[] => {
   const result = [...list];
@@ -47,7 +43,7 @@ const destroyAssetDoc = (asset: PdfAsset) => {
   }
 };
 
-export const usePdfAssets = create<PdfAssetState>((set, get) => ({
+export const usePdfAssets = create<PdfAssetState>((set) => ({
   assets: [],
   isBusy: false,
   error: null,
@@ -111,9 +107,4 @@ export const usePdfAssets = create<PdfAssetState>((set, get) => ({
       };
     }),
   clearError: () => set({ error: null }),
-  reset: () => {
-    const { assets } = get();
-    assets.forEach(destroyAssetDoc);
-    set({ assets: [], isBusy: false, error: null });
-  },
 }));

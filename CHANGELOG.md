@@ -4,6 +4,22 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.9] — 2026-09-17
+
+### Maintenance
+
+- Consolidated five byte-for-byte-identical `cloneBytesToArrayBuffer`/`cloneToArrayBuffer` helpers (in `PageEditorPage.tsx`, `SplitToolPage.tsx`, `imagesToPdf.ts`, `pdfSplit.ts`, `pdfToImages.ts`) into a single `cloneBytesToArrayBuffer` in the new `src/lib/bytes.ts`.
+- Consolidated duplicate `timestampToken()` implementations in `fileNames.ts` and `documentPipeline.ts` into one exported helper in `fileNames.ts`.
+- Consolidated duplicate `isPdf` file-type checks in `pdfAssets.ts` and `PdfViewerPage.tsx` into one exported predicate in `documentPipeline.ts`.
+- Removed three dead Zustand `reset()` actions with no production callers (`pdfAssets`, `activityLog`, `signatureLibrary`); the tests that used them for state isolation now call `clear()` or `setState()` directly instead.
+- Removed `docs/PDFWorkbench_password_test.pdf`, an unreferenced binary accidentally checked in alongside unrelated branding assets — no test, doc, or workflow pointed to it.
+
+### Tests
+
+- Added focused unit tests for the three newly consolidated helpers (`bytes.test.ts`, `fileNames.test.ts`, `documentPipeline.test.ts`).
+
+---
+
 ## [1.0.8] — 2026-09-16
 
 ### Fixed
