@@ -4,6 +4,20 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.3] — 2026-09-16
+
+### Improved
+
+- **Centralized PDF thumbnail rendering** — the page-by-page "get page → build viewport → render to a temporary canvas → convert to a PNG data URL" loop, previously duplicated across `PdfViewerPage`, `SplitToolPage`, and `PageEditorPage`, is now a single `renderThumbnails(pdf, { scale, signal })` async generator (`src/lib/pdfThumbnails.ts`). Each page keeps its own thumbnail state shape and UI, and now consumes the shared generator instead of re-implementing the pdf.js rendering steps. ~110 lines of duplicated rendering logic removed.
+- A failed thumbnail render now always releases its pdf.js page (`page.cleanup()`) before the error propagates — the three original implementations skipped this on failure, leaking the page's temporary render resources.
+- Removed a no-op state update in `PageEditorPage`'s thumbnail error handling that did nothing and read as though it did.
+
+### Tests
+
+- 5 new focused tests for `renderThumbnails` covering page order and scale, cleanup after a successful render, cleanup and error propagation after a failed render, and stopping (without yielding or throwing) when aborted before or during iteration.
+
+---
+
 ## [1.0.2] — 2026-09-16
 
 ### Fixed

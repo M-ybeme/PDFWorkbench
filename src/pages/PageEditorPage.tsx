@@ -13,6 +13,7 @@ import {
   type EditablePage,
 } from "../lib/pdfEdit";
 import { type ExportResult } from "../lib/documentPipeline";
+import { renderThumbnails } from "../lib/pdfThumbnails";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { useLoadedPdf } from "../hooks/useLoadedPdf";
 import { logExportResult } from "../state/activityLog";
@@ -102,54 +103,31 @@ const PageEditorPage = () => {
       return;
     }
 
-    let isCancelled = false;
+    const controller = new AbortController();
 
     const buildThumbnails = async () => {
-      for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber += 1) {
-        try {
-          const page = await pdf.doc.getPage(pageNumber);
-          const viewport = page.getViewport({ scale: THUMBNAIL_SCALE });
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-
-          if (!context) {
-            page.cleanup();
-            continue;
-          }
-
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-
-          const renderTask = page.render({ canvas, canvasContext: context, viewport });
-          await renderTask.promise;
-          page.cleanup();
-
-          if (isCancelled) {
-            return;
-          }
-
-          const id = buildEditablePageId(pdf.id, pageNumber - 1);
-          const dataUrl = canvas.toDataURL("image/png");
+      try {
+        for await (const thumb of renderThumbnails(pdf, {
+          scale: THUMBNAIL_SCALE,
+          signal: controller.signal,
+        })) {
+          const id = buildEditablePageId(pdf.id, thumb.pageNumber - 1);
           setThumbnails((current) => {
             if (current[id]) {
               return current;
             }
-            return { ...current, [id]: dataUrl };
+            return { ...current, [id]: thumb.dataUrl };
           });
-        } catch (thumbnailError) {
-          console.error(thumbnailError);
-          if (!isCancelled) {
-            setThumbnails((current) => current);
-          }
-          return;
         }
+      } catch (thumbnailError) {
+        console.error(thumbnailError);
       }
     };
 
     void buildThumbnails();
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
   }, [pdf]);
 

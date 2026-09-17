@@ -180,6 +180,18 @@ The route tree is driven by `src/data/toolRoutes.ts`, which is the single source
 
 ---
 
+## Thumbnail Rendering (`pdfThumbnails.ts`)
+
+`src/lib/pdfThumbnails.ts` exports `renderThumbnails(pdf, { scale, signal })`, an async generator that renders each page of a loaded PDF to a PNG data URL and yields them one at a time as they finish, so callers can update their UI progressively instead of waiting for the whole document. Passing an `AbortSignal` stops it silently (no further yields, no thrown "cancelled" error) once aborted — mid-page work already in flight still finishes and is cleaned up, it's just not yielded.
+
+It owns only the pdf.js mechanics common to every page: fetching each page, building its thumbnail viewport, creating a temporary canvas, running the render task, and releasing the page afterward (including on a failed render). It does not own the PDF document itself — `useLoadedPdf()` remains solely responsible for that lifecycle — nor does it decide how a page stores or displays the results.
+
+**Used by:** `PdfViewerPage`, `SplitToolPage`, `PageEditorPage` — each keeps its own thumbnail state shape (an ordered array for the first two, an id-keyed record for the page editor, since thumbnails there are addressed by a stable page identity rather than position) and its own `AbortController` per load, created and aborted alongside its `[pdf]` effect.
+
+**Not used by:** the signature/page-editing canvases, PDF → Images export, or PDF compression preview — each renders pdf.js pages to canvas for a genuinely different output contract (an interactive single-page surface, exported image files, or a re-encoded document) rather than a thumbnail rail.
+
+---
+
 ## Build Configuration
 
 **Chunk splitting** (`vite.config.ts`):

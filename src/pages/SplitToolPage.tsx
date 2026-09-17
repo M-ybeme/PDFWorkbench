@@ -18,6 +18,7 @@ import {
 import { logExportResult } from "../state/activityLog";
 import { type ExportResult } from "../lib/documentPipeline";
 import { formatBytes } from "../lib/format";
+import { renderThumbnails } from "../lib/pdfThumbnails";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { useLoadedPdf } from "../hooks/useLoadedPdf";
 
@@ -83,55 +84,37 @@ const SplitToolPage = () => {
       return;
     }
 
-    let isCancelled = false;
+    const controller = new AbortController();
     setThumbnails([]);
     setThumbnailStatus("rendering");
-    const nextThumbnails: Thumbnail[] = [];
 
     const buildThumbnails = async () => {
-      for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber += 1) {
-        try {
-          const page = await pdf.doc.getPage(pageNumber);
-          const viewport = page.getViewport({ scale: THUMBNAIL_SCALE });
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-
-          if (!context) {
-            page.cleanup();
-            continue;
-          }
-
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-
-          const renderTask = page.render({ canvas, canvasContext: context, viewport });
-          await renderTask.promise;
-          page.cleanup();
-
-          if (isCancelled) {
-            return;
-          }
-
-          nextThumbnails.push({ pageNumber, url: canvas.toDataURL("image/png") });
-          setThumbnails([...nextThumbnails]);
-        } catch (thumbnailError) {
-          console.error(thumbnailError);
-          if (!isCancelled) {
-            setThumbnailStatus("idle");
-          }
-          return;
+      try {
+        for await (const thumb of renderThumbnails(pdf, {
+          scale: THUMBNAIL_SCALE,
+          signal: controller.signal,
+        })) {
+          setThumbnails((current) => [
+            ...current,
+            { pageNumber: thumb.pageNumber, url: thumb.dataUrl },
+          ]);
         }
-      }
 
-      if (!isCancelled) {
-        setThumbnailStatus("ready");
+        if (!controller.signal.aborted) {
+          setThumbnailStatus("ready");
+        }
+      } catch (thumbnailError) {
+        console.error(thumbnailError);
+        if (!controller.signal.aborted) {
+          setThumbnailStatus("idle");
+        }
       }
     };
 
     void buildThumbnails();
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
   }, [pdf]);
 
