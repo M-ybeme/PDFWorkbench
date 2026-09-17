@@ -2,7 +2,7 @@
 
 A complete client-side PDF toolkit built with React + TypeScript. View, merge, split, edit pages, convert images to PDF, compress, sign, and export pages as images — all without uploading files to a server. **Files are processed locally in your browser and are not uploaded by this application.**
 
-> Current release: **v1.0.7** · See [CHANGELOG.md](CHANGELOG.md) for what's new.
+> Current release: **v1.0.8** · See [CHANGELOG.md](CHANGELOG.md) for what's new.
 
 ---
 

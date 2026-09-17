@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 
 import Alert from "../components/Alert";
@@ -39,6 +39,7 @@ const PdfToImagesPage = () => {
     clearError: clearLoadError,
     submitPassword,
     cancelPassword,
+    withPdfLease,
   } = useLoadedPdf();
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
@@ -47,6 +48,25 @@ const PdfToImagesPage = () => {
   const [jpegQuality, setJpegQuality] = useState(0.92);
   const [isExporting, setExporting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+
+  // Export keeps reading pages from the document across many `await`
+  // points (see renderAllPagesToImages). If the user navigates away
+  // mid-run, this page unmounts — withPdfLease keeps the document itself
+  // alive until the operation finishes, but this page's own state has
+  // nothing left to update, so the progress callback and the
+  // catch/finally blocks below check this before touching React state.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    // Explicitly re-arm on setup, not just tear down on cleanup — React 18
+    // StrictMode double-invokes effects in development (mount, cleanup,
+    // mount again), and without this the cleanup-only version would leave
+    // isMountedRef permanently false after that first cycle even though
+    // the component is still genuinely mounted.
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // A new load (including a replace) clears this tool's own result/error
   // banners the moment it starts, matching the old inline clearing at the
@@ -103,24 +123,36 @@ const PdfToImagesPage = () => {
     const startedAt = Date.now();
 
     try {
-      const images = await renderAllPagesToImages(
-        pdf,
-        { format, scale, jpegQuality },
-        undefined,
-        (done, total) => setProgress({ done, total }),
-      );
+      const { blob, downloadName, images } = await withPdfLease(async (leasedPdf) => {
+        const renderedImages = await renderAllPagesToImages(
+          leasedPdf,
+          { format, scale, jpegQuality },
+          undefined,
+          (done, total) => {
+            if (isMountedRef.current) {
+              setProgress({ done, total });
+            }
+          },
+        );
 
-      let blob: Blob;
-      let downloadName: string;
+        if (renderedImages.length === 1 && renderedImages[0]) {
+          return {
+            blob: renderedImages[0].blob,
+            downloadName: renderedImages[0].fileName,
+            images: renderedImages,
+          };
+        }
 
-      if (images.length === 1 && images[0]) {
-        blob = images[0].blob;
-        downloadName = images[0].fileName;
-      } else {
-        blob = await bundleImagesAsZip(images);
-        downloadName = buildDownloadName(pdf.name, `pages-${format}-${scale}x`, "zip");
-      }
+        const zipBlob = await bundleImagesAsZip(renderedImages);
+        return {
+          blob: zipBlob,
+          downloadName: buildDownloadName(leasedPdf.name, `pages-${format}-${scale}x`, "zip"),
+          images: renderedImages,
+        };
+      });
 
+      // The download and activity log entry are real side effects the user
+      // asked for — they still happen even if this page is gone by now.
       triggerBlobDownload(blob, downloadName);
 
       logExportResult({
@@ -136,16 +168,26 @@ const PdfToImagesPage = () => {
         },
       });
 
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setExportSuccess(
         `Exported ${images.length} page${images.length === 1 ? "" : "s"} as ${format.toUpperCase()} — ${formatBytes(blob.size)}`,
       );
     } catch (exportProblem) {
+      // Diagnostics are useful even if the page is gone; the error banner
+      // itself has nowhere left to render.
       console.error("Failed to export images", exportProblem);
-      setExportError(getFriendlyPdfError(exportProblem));
+      if (isMountedRef.current) {
+        setExportError(getFriendlyPdfError(exportProblem));
+      }
     } finally {
-      setExporting(false);
+      if (isMountedRef.current) {
+        setExporting(false);
+      }
     }
-  }, [pdf, format, scale, jpegQuality]);
+  }, [pdf, format, scale, jpegQuality, withPdfLease]);
 
   const canExport = Boolean(pdf) && !isExporting && status === "ready";
 

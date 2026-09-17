@@ -170,8 +170,9 @@ The route tree is driven by `src/data/toolRoutes.ts`, which is the single source
 - `passwordPrompt` state and `submitPassword`/`cancelPassword` (delegated to `usePasswordPrompt`) — `loadPdfFromSource`'s retry loop calls `requestPassword` again on a wrong password, so the same prompt naturally reappears with `reason: "password-incorrect"`
 - `loadFile(file)` — loads a file, destroying whatever was previously loaded first
 - `reset()` — clears the current document and cancels any pending password prompt
-- Destroying the pdf.js document exactly once at each transition: on replace, on reset, and on unmount. A `pdfRef` (mirroring `pdf` outside React's render cycle) is the single source of truth for "what needs destroying," so replacement and unmount can never both try to destroy the same document
+- Destroying the pdf.js document exactly once at each transition: on replace, on reset, and on unmount — deferred, not skipped, while an active-operation lease is outstanding (see Document Ownership & Lifetime below). A `pdfRef` (mirroring `pdf` outside React's render cycle) is the single source of truth for "what needs destroying," so replacement and unmount can never both try to destroy the same document
 - A monotonic request token guards against async races: if a newer `loadFile`/`reset` call supersedes one still in flight, the older call's eventual result is discarded and — if it was a successful load — its document is destroyed immediately rather than leaked
+- `withPdfLease(fn)` — lets a long-running operation borrow the current document across an `await`, guaranteeing it isn't destroyed out from under that operation even if the document is reset, replaced, or the page unmounts before the operation finishes
 
 **What it does not own:** tool-specific state (selected pages, edit history, export settings, canvas rendering, thumbnails). Pages react to the hook's `pdf` reference changing (to seed their own state) and to `status` becoming `"loading"` (to clear their own result/error banners), the same way they already reacted to local `pdf` state before.
 
@@ -181,13 +182,26 @@ The route tree is driven by `src/data/toolRoutes.ts`, which is the single source
 
 ---
 
+## Document Ownership & Lifetime
+
+`useLoadedPdf()` is the single owner of the pdf.js document's physical lifetime — no other code ever calls `doc.destroy()`. Two separate mechanisms sit on top of that ownership, for two different needs:
+
+- **Lifecycle invalidation (`pdfLifecycle`)** — an `AbortSignal` that aborts the instant the document is superseded (replace, reset, unmount), in the same synchronous step as destruction. This is for consumers that should stop immediately and have nothing to lose by stopping early — currently just thumbnail rendering. It does **not** keep the document alive; it just tells a cancel-fast consumer to stop reading it.
+- **Active-operation leases (`withPdfLease`)** — the opposite guarantee, for a long-running operation (compression, PDF → Images export) that has already started reading pages and must be allowed to finish even if the document is reset, replaced, or its page unmounts in the meantime. `await withPdfLease(async (pdf) => { ... })` acquires a lease on whichever document is current, runs the callback, and releases in `finally` regardless of how it settles — a caller cannot forget to release. While any lease on a document is outstanding, `useLoadedPdf()` defers that document's `doc.destroy()` instead of skipping it; the deferred call runs exactly once, the moment the last lease on that specific document (tracked by its `id`, not a single shared counter) releases. Releasing a lease on an old, superseded document can never affect whatever document is current by the time that release happens.
+
+**Choosing between them:** if reading a stale/half-destroyed document would only produce a briefly-wrong preview (thumbnails), cancel it via `pdfLifecycle`. If the user explicitly started something with a completion side effect they're waiting on (a download), borrow the document via `withPdfLease` instead — do not cancel it, and do not update the page's own React state after unmount (see below).
+
+**Which tools need a lease:** only `compressPdfWithPreset` (`pdfCompression.ts`) and `renderAllPagesToImages` (`pdfToImages.ts`) read the live pdf.js document (`pdf.doc.getPage(...)`) across their operation, so only `CompressionToolPage` and `PdfToImagesPage` use `withPdfLease`. `extractPagesFromLoadedPdf`/`splitPdfByChunkSize` (`pdfSplit.ts`) and `applyPageEdits` (`pdfEdit.ts`) only ever read `pdf.data` — the already-loaded bytes, unaffected by the live document's lifecycle — so `SplitToolPage` and `PageEditorPage` don't need one. All four pages still track an `isMountedRef` and check it before updating their own success/error/busy state after an operation's `await` resolves, so a page that's gone by then doesn't bother touching state nobody will read; the download and activity-log side effects themselves still run either way, since those are real effects the user asked for, not UI.
+
+---
+
 ## Thumbnail Rendering (`pdfThumbnails.ts`)
 
 `src/lib/pdfThumbnails.ts` exports `renderThumbnails(pdf, { scale, signal })`, an async generator that renders each page of a loaded PDF to a PNG data URL and yields them one at a time as they finish, so callers can update their UI progressively instead of waiting for the whole document. Passing an `AbortSignal` stops it silently (no further yields, no thrown "cancelled" error) once aborted — mid-page work already in flight still finishes and is cleaned up, it's just not yielded.
 
 It owns only the pdf.js mechanics common to every page: fetching each page, building its thumbnail viewport, creating a temporary canvas, running the render task, and releasing the page afterward (including on a failed render). It does not own the PDF document itself — `useLoadedPdf()` remains solely responsible for that lifecycle — nor does it decide how a page stores or displays the results.
 
-**Used by:** `PdfViewerPage`, `SplitToolPage`, `PageEditorPage` — each keeps its own thumbnail state shape (an ordered array for the first two, an id-keyed record for the page editor, since thumbnails there are addressed by a stable page identity rather than position) and its own `AbortController` per load, created and aborted alongside its `[pdf]` effect.
+**Used by:** `PdfViewerPage`, `SplitToolPage`, `PageEditorPage` — each keeps its own thumbnail state shape (an ordered array for the first two, an id-keyed record for the page editor, since thumbnails there are addressed by a stable page identity rather than position) and passes `useLoadedPdf()`'s own `pdfLifecycle` signal straight through as `renderThumbnails`'s `signal` — no page owns a separate `AbortController` for this (see Document Ownership & Lifetime below for why that signal is the right one to cancel thumbnails with, but not enough on its own to protect a long-running export).
 
 **Not used by:** the signature/page-editing canvases, PDF → Images export, or PDF compression preview — each renders pdf.js pages to canvas for a genuinely different output contract (an interactive single-page surface, exported image files, or a re-encoded document) rather than a thumbnail rail.
 

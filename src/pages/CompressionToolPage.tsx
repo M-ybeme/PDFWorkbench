@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 
 import Alert from "../components/Alert";
@@ -46,12 +46,32 @@ const CompressionToolPage = () => {
     clearError: clearLoadError,
     submitPassword,
     cancelPassword,
+    withPdfLease,
   } = useLoadedPdf();
   const [compressionError, setCompressionError] = useState<string | null>(null);
   const [compressionSuccess, setCompressionSuccess] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<CompressionResult | null>(null);
   const [presetId, setPresetId] = useState<CompressionPresetId>("balanced");
   const [isCompressing, setCompressing] = useState(false);
+
+  // Compression keeps reading pages from the document across many `await`
+  // points (see compressPdfWithPreset). If the user navigates away mid-run,
+  // this page unmounts — withPdfLease keeps the document itself alive until
+  // the operation finishes, but this page's own state has nothing left to
+  // update, so the finally/catch blocks below check this before touching
+  // React state.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    // Explicitly re-arm on setup, not just tear down on cleanup — React 18
+    // StrictMode double-invokes effects in development (mount, cleanup,
+    // mount again), and without this the cleanup-only version would leave
+    // isMountedRef permanently false after that first cycle even though
+    // the component is still genuinely mounted.
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // A new load (including a replace) clears this tool's own result/error
   // banners the moment it starts, matching the timing of the old inline
@@ -131,9 +151,19 @@ const CompressionToolPage = () => {
     setCompressing(true);
 
     try {
-      const result = await compressPdfWithPreset(pdf, presetId, { startedAt: Date.now() });
+      const result = await withPdfLease((leasedPdf) =>
+        compressPdfWithPreset(leasedPdf, presetId, { startedAt: Date.now() }),
+      );
+
+      // The download and activity log entry are real side effects the user
+      // asked for — they still happen even if this page is gone by now.
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setLastResult(result);
 
       const savingsMsg =
@@ -143,12 +173,18 @@ const CompressionToolPage = () => {
 
       setCompressionSuccess(`Saved as ${result.downloadName}. ${savingsMsg}`);
     } catch (compressionProblem) {
+      // Diagnostics are useful even if the page is gone; the error banner
+      // itself has nowhere left to render.
       console.error("Failed to run compression", compressionProblem);
-      setCompressionError(getFriendlyPdfError(compressionProblem));
+      if (isMountedRef.current) {
+        setCompressionError(getFriendlyPdfError(compressionProblem));
+      }
     } finally {
-      setCompressing(false);
+      if (isMountedRef.current) {
+        setCompressing(false);
+      }
     }
-  }, [pdf, presetId]);
+  }, [pdf, presetId, withPdfLease]);
 
   const canCompress = Boolean(pdf) && !isCompressing && status === "ready";
 

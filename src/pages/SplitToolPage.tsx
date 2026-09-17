@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import clsx from "clsx";
 
 import Alert from "../components/Alert";
@@ -61,6 +61,25 @@ const SplitToolPage = () => {
   const [isSelectionDownloading, setSelectionDownloading] = useState(false);
   const [isBundleDownloading, setBundleDownloading] = useState(false);
 
+  // Both downloads below only read pdf.data (already-loaded bytes, via
+  // pdfSplit.ts), never the live pdf.js document — so unlike Compression
+  // and PDF -> Images, neither can actually be broken by the document
+  // being destroyed mid-operation, and no lease is needed here. This ref
+  // is purely so a download that finishes after the page unmounts doesn't
+  // bother updating state nobody will read.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    // Explicitly re-arm on setup, not just tear down on cleanup — React 18
+    // StrictMode double-invokes effects in development (mount, cleanup,
+    // mount again), and without this the cleanup-only version would leave
+    // isMountedRef permanently false after that first cycle even though
+    // the component is still genuinely mounted.
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // A new load (including a replace) clears these tool-specific banners
   // the moment it starts, matching the old inline clearing at the top of
   // loadFile. Page selection itself is reset separately below, once the
@@ -122,10 +141,10 @@ const SplitToolPage = () => {
     return Array.from({ length: pdf.pageCount }, (_, index) => index + 1);
   }, [pdf]);
 
-  // Either download can be reading pages from the active document —
-  // destroying it mid-operation would fail with a misleading error
-  // instead of the real cause, so both Reset and file replacement are
-  // blocked while either is in flight.
+  // Neither download actually depends on the live document surviving (see
+  // isMountedRef above), but Reset/file-replacement stay blocked here for
+  // the same predictable-UX reason as every other tool: no point letting a
+  // user reset the workspace out from under a download they just started.
   const isBusy = isSelectionDownloading || isBundleDownloading;
 
   const resetWorkspace = useCallback(() => {
@@ -228,12 +247,18 @@ const SplitToolPage = () => {
 
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);
-      setSelectionSuccess(`Downloaded ${selection.length} page(s).`);
+      if (isMountedRef.current) {
+        setSelectionSuccess(`Downloaded ${selection.length} page(s).`);
+      }
     } catch (selectionProblem) {
       console.error(selectionProblem);
-      setSelectionError(getFriendlyPdfError(selectionProblem));
+      if (isMountedRef.current) {
+        setSelectionError(getFriendlyPdfError(selectionProblem));
+      }
     } finally {
-      setSelectionDownloading(false);
+      if (isMountedRef.current) {
+        setSelectionDownloading(false);
+      }
     }
   }, [pdf, selectedPages]);
 
@@ -272,12 +297,18 @@ const SplitToolPage = () => {
 
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);
-      setBundleSuccess(`Exported ${entries.length} slice(s) with ${splitSize}-page preset.`);
+      if (isMountedRef.current) {
+        setBundleSuccess(`Exported ${entries.length} slice(s) with ${splitSize}-page preset.`);
+      }
     } catch (presetProblem) {
       console.error(presetProblem);
-      setBundleError(getFriendlyPdfError(presetProblem));
+      if (isMountedRef.current) {
+        setBundleError(getFriendlyPdfError(presetProblem));
+      }
     } finally {
-      setBundleDownloading(false);
+      if (isMountedRef.current) {
+        setBundleDownloading(false);
+      }
     }
   }, [pdf, splitSize]);
 

@@ -4,6 +4,21 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.8] — 2026-09-16
+
+### Fixed
+
+- **Navigating away from Compression or PDF → Images while an export was still running could destroy the active PDF mid-operation**, surfacing a misleading processing error instead of the real cause. The previous fix blocked Reset/file-replacement while busy but couldn't protect against the page itself unmounting. `useLoadedPdf()` now exposes `withPdfLease(fn)`: a long-running operation borrows the current document across its `await`s, and the hook defers `doc.destroy()` — rather than skipping it — until every outstanding lease on that specific document releases. `CompressionToolPage` and `PdfToImagesPage` (the only two tools whose export functions read the live pdf.js document rather than already-loaded bytes) now run their export through `withPdfLease`.
+- All four single-document tools (`CompressionToolPage`, `PdfToImagesPage`, `SplitToolPage`, `PageEditorPage`) now track whether they're still mounted and skip their own success/error/busy-flag state updates once they're not — the download and activity-log entry still happen either way, since those are real effects the user asked for, not UI with nowhere left to render.
+- `docs/ARCHITECTURE.md`'s thumbnail-rendering section had drifted stale (it described pages owning their own `AbortController`, from before the earlier `pdfLifecycle` fix); corrected alongside documenting the new lease/lifecycle ownership model.
+
+### Tests
+
+- 7 new unit tests for `useLoadedPdf`'s `withPdfLease`/deferred-destruction behavior: unmount and reset each defer destruction while a lease is active and destroy exactly once after it releases; two concurrent leases on the same document both must release before it's destroyed; replacing a leased document defers only that document's destruction and never touches the new current one; no-lease reset still destroys immediately; a failed operation still releases its lease and allows deferred destruction; `withPdfLease` rejects when called with no loaded PDF.
+- 2 new component tests (one each in `CompressionToolPage.test.tsx`/`PdfToImagesPage.test.tsx`) verifying an export started before unmount still downloads and logs afterward.
+
+---
+
 ## [1.0.7] — 2026-09-16
 
 ### Fixed

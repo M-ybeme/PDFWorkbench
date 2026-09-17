@@ -452,3 +452,201 @@ describe("useLoadedPdf", () => {
     expect(result.current.status).toBe("error");
   });
 });
+
+describe("useLoadedPdf withPdfLease", () => {
+  beforeEach(() => {
+    mockLoadPdfFromFile.mockReset();
+  });
+
+  it("defers destruction on unmount while a lease is active, then destroys exactly once after it releases", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result, unmount } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    const operation = createDeferred<void>();
+    let leasePromise!: Promise<void>;
+    act(() => {
+      leasePromise = result.current.withPdfLease(async () => {
+        await operation.promise;
+      });
+    });
+
+    unmount();
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operation.resolve();
+      await leasePromise;
+    });
+
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("defers destruction on reset while a lease is active, then destroys exactly once after it releases", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    const operation = createDeferred<void>();
+    let leasePromise!: Promise<void>;
+    act(() => {
+      leasePromise = result.current.withPdfLease(async () => {
+        await operation.promise;
+      });
+    });
+
+    act(() => {
+      result.current.reset();
+    });
+    // Reset moves the UI-facing state on immediately even though the old
+    // document's physical destruction is deferred.
+    expect(result.current.pdf).toBeNull();
+    expect(result.current.status).toBe("idle");
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operation.resolve();
+      await leasePromise;
+    });
+
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a document alive until every concurrent lease on it releases, destroying it exactly once", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result, unmount } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    const operationA = createDeferred<void>();
+    const operationB = createDeferred<void>();
+    let leaseA!: Promise<void>;
+    let leaseB!: Promise<void>;
+    act(() => {
+      leaseA = result.current.withPdfLease(async () => {
+        await operationA.promise;
+      });
+      leaseB = result.current.withPdfLease(async () => {
+        await operationB.promise;
+      });
+    });
+
+    unmount();
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operationA.resolve();
+      await leaseA;
+    });
+    // One of two leases released — still not destroyed.
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operationB.resolve();
+      await leaseB;
+    });
+    // The final lease released — destroyed exactly once.
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("replacing a leased document defers only that document's destruction, and never touches the new current document", async () => {
+    const pdfA = createFakeLoadedPdf("a.pdf");
+    const pdfB = createFakeLoadedPdf("b.pdf");
+    mockLoadPdfFromFile.mockResolvedValueOnce(pdfA).mockResolvedValueOnce(pdfB);
+
+    const { result } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    const operation = createDeferred<void>();
+    let leasePromise!: Promise<void>;
+    act(() => {
+      leasePromise = result.current.withPdfLease(async () => {
+        await operation.promise;
+      });
+    });
+
+    await act(async () => {
+      await result.current.loadFile(createFile("b.pdf"));
+    });
+
+    expect(result.current.pdf).toBe(pdfB);
+    expect(pdfA.doc.destroy).toHaveBeenCalledTimes(0);
+    expect(pdfB.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operation.resolve();
+      await leasePromise;
+    });
+
+    expect(pdfA.doc.destroy).toHaveBeenCalledTimes(1);
+    expect(pdfB.doc.destroy).toHaveBeenCalledTimes(0);
+    expect(result.current.pdf).toBe(pdfB);
+  });
+
+  it("destroys immediately, as before, when no lease is held", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    act(() => {
+      result.current.reset();
+    });
+
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases the lease and still allows deferred destruction after the operation throws", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result } = renderHook(() => useLoadedPdf());
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+
+    const operation = createDeferred<void>();
+    let leasePromise!: Promise<void>;
+    act(() => {
+      leasePromise = result.current.withPdfLease(async () => {
+        await operation.promise;
+      });
+    });
+
+    act(() => {
+      result.current.reset();
+    });
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(0);
+
+    await act(async () => {
+      operation.reject(new Error("operation failed"));
+      await leasePromise.catch(() => {});
+    });
+
+    expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects when called with no loaded PDF", async () => {
+    const { result } = renderHook(() => useLoadedPdf());
+
+    await expect(result.current.withPdfLease(async () => {})).rejects.toThrow(
+      "withPdfLease() called with no loaded PDF.",
+    );
+  });
+});

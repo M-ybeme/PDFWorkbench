@@ -75,6 +75,22 @@ const PageEditorPage = () => {
   const [isDownloading, setDownloading] = useState(false);
 
   const dragSourceId = useRef<string | null>(null);
+  // Purely so a download that finishes after the page unmounts doesn't
+  // bother updating state nobody will read — see the note on
+  // resetWorkspace below for why this export doesn't need a document
+  // lease.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    // Explicitly re-arm on setup, not just tear down on cleanup — React 18
+    // StrictMode double-invokes effects in development (mount, cleanup,
+    // mount again), and without this the cleanup-only version would leave
+    // isMountedRef permanently false after that first cycle even though
+    // the component is still genuinely mounted.
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // A new load (including a replace) clears these tool-specific banners
   // the moment it starts, matching the old inline clearing at the top of
@@ -126,11 +142,14 @@ const PageEditorPage = () => {
     void buildThumbnails();
   }, [pdf, pdfLifecycle]);
 
+  // applyPageEdits only reads pdf.data (already-loaded bytes, via
+  // pdfEdit.ts), never the live pdf.js document — so unlike Compression
+  // and PDF -> Images, this export can't actually be broken by the
+  // document being destroyed mid-operation, and no lease is needed here.
+  // Reset/file-replacement are still blocked below for the same
+  // predictable-UX reason as every other tool.
   const resetWorkspace = useCallback(() => {
     if (isDownloading) {
-      // The export is still reading pages from the active document —
-      // destroying it now would fail the in-flight operation with a
-      // misleading error instead of the real cause.
       return;
     }
     resetPdf();
@@ -291,12 +310,18 @@ const PageEditorPage = () => {
 
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);
-      setDownloadSuccess(`Exported ${kept} page${kept === 1 ? "" : "s"}.`);
+      if (isMountedRef.current) {
+        setDownloadSuccess(`Exported ${kept} page${kept === 1 ? "" : "s"}.`);
+      }
     } catch (downloadProblem) {
       console.error(downloadProblem);
-      setDownloadError(getFriendlyPdfError(downloadProblem));
+      if (isMountedRef.current) {
+        setDownloadError(getFriendlyPdfError(downloadProblem));
+      }
     } finally {
-      setDownloading(false);
+      if (isMountedRef.current) {
+        setDownloading(false);
+      }
     }
   }, [pages, pdf]);
 

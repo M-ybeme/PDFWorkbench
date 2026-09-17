@@ -55,6 +55,82 @@ export function useLoadedPdf() {
     lifecycleRef.current = null;
   }, []);
 
+  // Active-operation leases, keyed by document id — separate from
+  // lifecycleRef above. lifecycleRef tells cancel-fast consumers (thumbnail
+  // rendering) to stop the instant a document is superseded; a lease is the
+  // opposite guarantee, for a long-running operation (compression, page
+  // rasterization) that has already started reading pages and must be
+  // allowed to finish safely even if the document is reset, replaced, or
+  // its page unmounts in the meantime. destroyOrDefer only calls
+  // doc.destroy() immediately when the document being torn down has no
+  // outstanding leases; otherwise the actual pdf.js document is kept alive
+  // and destruction happens once the last lease on that specific id
+  // releases (see acquireLease below). Keyed by id (not a single counter)
+  // so releasing an old, leased document's lease can never affect whatever
+  // document is current by the time that release happens.
+  const leaseCountsRef = useRef<Map<string, number>>(new Map());
+  const pendingDestroyRef = useRef<Map<string, LoadedPdf["doc"]>>(new Map());
+
+  const destroyOrDefer = useCallback((doc: LoadedPdf) => {
+    if ((leaseCountsRef.current.get(doc.id) ?? 0) > 0) {
+      pendingDestroyRef.current.set(doc.id, doc.doc);
+    } else {
+      destroySafely(doc.doc);
+    }
+  }, []);
+
+  // Returns an idempotent release function scoped to this one acquisition —
+  // calling it more than once is a no-op, so a caller can never double-count
+  // a release against another, unrelated lease on the same document.
+  const acquireLease = useCallback((doc: LoadedPdf): (() => void) => {
+    const id = doc.id;
+    leaseCountsRef.current.set(id, (leaseCountsRef.current.get(id) ?? 0) + 1);
+
+    let released = false;
+    return () => {
+      if (released) {
+        return;
+      }
+      released = true;
+
+      const remaining = (leaseCountsRef.current.get(id) ?? 1) - 1;
+      if (remaining > 0) {
+        leaseCountsRef.current.set(id, remaining);
+        return;
+      }
+
+      leaseCountsRef.current.delete(id);
+      const pendingDoc = pendingDestroyRef.current.get(id);
+      if (pendingDoc) {
+        pendingDestroyRef.current.delete(id);
+        destroySafely(pendingDoc);
+      }
+    };
+  }, []);
+
+  // The only public way to borrow the current document across an `await` —
+  // acquires a lease on whichever document is current at call time, runs
+  // `fn`, and releases in `finally` no matter how `fn` settles, so a caller
+  // can't forget to release. Use this for any operation that keeps reading
+  // `pdf.doc` after the first `await` and must be allowed to finish even if
+  // the user navigates away or resets mid-operation.
+  const withPdfLease = useCallback(
+    async <T>(fn: (pdf: LoadedPdf) => Promise<T>): Promise<T> => {
+      const current = pdfRef.current;
+      if (!current) {
+        throw new Error("withPdfLease() called with no loaded PDF.");
+      }
+
+      const release = acquireLease(current);
+      try {
+        return await fn(current);
+      } finally {
+        release();
+      }
+    },
+    [acquireLease],
+  );
+
   useEffect(() => {
     configurePdfWorker();
   }, []);
@@ -72,11 +148,13 @@ export function useLoadedPdf() {
       cancelPassword();
       invalidateLifecycle();
       if (pdfRef.current) {
-        destroySafely(pdfRef.current.doc);
+        // Deferred, not skipped, if an operation still holds a lease — see
+        // destroyOrDefer above.
+        destroyOrDefer(pdfRef.current);
         pdfRef.current = null;
       }
     };
-  }, [cancelPassword, invalidateLifecycle]);
+  }, [cancelPassword, destroyOrDefer, invalidateLifecycle]);
 
   const commitPdf = useCallback((next: LoadedPdf | null) => {
     pdfRef.current = next;
@@ -101,7 +179,7 @@ export function useLoadedPdf() {
       if (previous) {
         // Cancel dependents before destroying — see lifecycleRef above.
         invalidateLifecycle();
-        destroySafely(previous.doc);
+        destroyOrDefer(previous);
         pdfRef.current = null;
       }
 
@@ -134,7 +212,7 @@ export function useLoadedPdf() {
         setError(getFriendlyPdfError(loadProblem));
       }
     },
-    [cancelPassword, commitPdf, invalidateLifecycle, requestPassword],
+    [cancelPassword, commitPdf, destroyOrDefer, invalidateLifecycle, requestPassword],
   );
 
   const reset = useCallback(() => {
@@ -143,14 +221,14 @@ export function useLoadedPdf() {
     invalidateLifecycle();
 
     if (pdfRef.current) {
-      destroySafely(pdfRef.current.doc);
+      destroyOrDefer(pdfRef.current);
       pdfRef.current = null;
     }
 
     setPdf(null);
     setStatus("idle");
     setError(null);
-  }, [cancelPassword, invalidateLifecycle]);
+  }, [cancelPassword, destroyOrDefer, invalidateLifecycle]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -171,5 +249,6 @@ export function useLoadedPdf() {
     clearError,
     submitPassword,
     cancelPassword,
+    withPdfLease,
   };
 }
