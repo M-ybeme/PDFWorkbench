@@ -4,6 +4,13 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.10] — 2026-09-17
+
+### Documentation
+
+- `docs/DOCUMENT_PIPELINE_CONTRACT.md` was rewritten to describe only the current `PdfSource`/`LoadedPdf`/`ExportResult` data contract; it no longer presents unshipped design intent as current behavior. Removed: a fictional per-operation `AbortSignal`/`PdfOperationAborted` cancellation contract (the real cancellation model — `pdfLifecycle` + `withPdfLease` — was already documented in `ARCHITECTURE.md` and is unrelated to this), an unenforced "250MB/1,000 pages" size-cap claim, and an "Adoption Plan" section whose migration steps were already completed. Superseded design intent worth keeping for context now lives in a clearly labeled "Historical design notes" section instead of being presented as normative.
+- `ARCHITECTURE.md`'s Key Modules table now lists `bytes.ts` and corrects the `documentPipeline.ts`/`fileNames.ts` rows (the latter was describing the former's dot-separated naming format, not its own dash-separated one); the `pdfAssets` state description no longer references the `reset()` action removed in 1.0.9.
+
 ## [1.0.9] — 2026-09-17
 
 ### Maintenance

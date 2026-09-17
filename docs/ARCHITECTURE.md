@@ -8,7 +8,7 @@ This document describes the codebase structure, key design decisions, and data-f
 
 1. **Client-side only.** Every PDF operation runs in the browser. No files are sent to a server. `pdf.js` handles rendering; `pdf-lib` handles creation and manipulation.
 2. **Lazy-loaded tools.** Each tool page is a separate dynamic import. Heavy dependencies (`pdfjs-dist`, `pdf-lib`, `jszip`) are bundled into stable vendor chunks that the browser caches across page loads.
-3. **Shared pipeline contract.** All tools follow the same `PdfSource → LoadedPdf → ExportResult` lifecycle. See [`DOCUMENT_PIPELINE_CONTRACT.md`](DOCUMENT_PIPELINE_CONTRACT.md) for the full spec.
+3. **Shared pipeline contract.** All tools follow the same `PdfSource → LoadedPdf → ExportResult` data flow. See [`DOCUMENT_PIPELINE_CONTRACT.md`](DOCUMENT_PIPELINE_CONTRACT.md) for the exact type shapes; document lifetime and cancellation are covered below, not there.
 4. **Isolated crashes.** Every tool route is wrapped in an `ErrorBoundary`. A bug in one tool cannot bring down the rest of the app.
 
 ---
@@ -30,7 +30,7 @@ src/
 docs/
   ARCHITECTURE.md               This file
   PDFWORKBENCH_ROADMAP.md       Milestone plan through v1.0
-  DOCUMENT_PIPELINE_CONTRACT.md PdfSource / LoadedPdf / ExportResult type contract
+  DOCUMENT_PIPELINE_CONTRACT.md PdfSource / LoadedPdf / ExportResult type shapes (data only — see this file for lifecycle)
   MERGE_SPLIT_PLAN.md           Early planning notes for 0.3.x
 
 playwright/         End-to-end test specs (one file per tool)
@@ -43,27 +43,28 @@ vite.config.ts      Vite + Vitest config with manualChunks for vendor splitting
 
 ## Key Modules (`src/lib/`)
 
-| File                    | Purpose                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `pdfLoader.ts`          | Loads a `File` through pdf.js, returns a `LoadedPdf`. Handles password prompts.                                                      |
-| `pdfMerge.ts`           | Merges an ordered list of `LoadedPdf` objects into a single `Uint8Array` via pdf-lib.                                                |
-| `pdfSplit.ts`           | Extracts page subsets (`extractPagesFromLoadedPdf`) or chunks (`splitPdfByChunkSize`) into `Uint8Array` results.                     |
-| `pdfEdit.ts`            | Applies reorder/rotate/delete instructions from the Page Editor and rebuilds the PDF.                                                |
-| `pdfCompression.ts`     | Rasterises each page via pdf.js canvas at a preset DPI, re-encodes as JPEG, rebuilds with pdf-lib.                                   |
-| `pdfToImages.ts`        | Renders pages to canvas at configurable scale, exports as PNG or JPEG blobs, bundles as ZIP.                                         |
-| `signaturePlacement.ts` | Coordinate mapping between canvas viewport pixels and pdf-lib PDF-unit coordinates.                                                  |
-| `signatureStamp.ts`     | Embeds signature images, text blocks, and pen strokes into the exported PDF.                                                         |
-| `imageLayout.ts`        | Computes `x/y/width/height` for fit, fill, and center modes inside a page's margin box.                                              |
-| `imagesToPdf.ts`        | Decodes source images (repairing malformed PNGs, re-encoding WebP/GIF/BMP/etc. via canvas) and embeds them as PDF pages via pdf-lib. |
-| `pngIntegrity.ts`       | Detects and repairs malformed PNG headers before `pdf-lib.embedPng()` is called.                                                     |
-| `pdfErrors.ts`          | `PdfLoadError` taxonomy and `getFriendlyPdfError` — maps errors to user-friendly message strings.                                    |
-| `documentPipeline.ts`   | `PdfSource`/`ExportResult` types, `createPdfSourceFromFile`, and `buildDownloadName(FromSources)` helpers.                           |
-| `downloads.ts`          | `triggerBlobDownload` — creates an object URL, clicks it, then schedules revocation.                                                 |
-| `fileNames.ts`          | Generates consistent download filenames (`{baseName}.{operation}.{timestamp}.{ext}`).                                                |
-| `format.ts`             | `formatBytes` and `formatTimestamp` display helpers.                                                                                 |
-| `pdfWorker.ts`          | Configures the pdf.js worker (sets `workerSrc` for the bundled worker file).                                                         |
-| `theme.ts`              | Reads/writes the theme preference to `localStorage`.                                                                                 |
-| `ids.ts`                | `createLocalId(prefix)` — shared UUID-with-fallback helper for locally generated entity IDs.                                         |
+| File                    | Purpose                                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pdfLoader.ts`          | Loads a `File` through pdf.js, returns a `LoadedPdf`. Handles password prompts.                                                                                                                   |
+| `pdfMerge.ts`           | Merges an ordered list of `LoadedPdf` objects into a single `Uint8Array` via pdf-lib.                                                                                                             |
+| `pdfSplit.ts`           | Extracts page subsets (`extractPagesFromLoadedPdf`) or chunks (`splitPdfByChunkSize`) into `Uint8Array` results.                                                                                  |
+| `pdfEdit.ts`            | Applies reorder/rotate/delete instructions from the Page Editor and rebuilds the PDF.                                                                                                             |
+| `pdfCompression.ts`     | Rasterises each page via pdf.js canvas at a preset DPI, re-encodes as JPEG, rebuilds with pdf-lib.                                                                                                |
+| `pdfToImages.ts`        | Renders pages to canvas at configurable scale, exports as PNG or JPEG blobs, bundles as ZIP.                                                                                                      |
+| `signaturePlacement.ts` | Coordinate mapping between canvas viewport pixels and pdf-lib PDF-unit coordinates.                                                                                                               |
+| `signatureStamp.ts`     | Embeds signature images, text blocks, and pen strokes into the exported PDF.                                                                                                                      |
+| `imageLayout.ts`        | Computes `x/y/width/height` for fit, fill, and center modes inside a page's margin box.                                                                                                           |
+| `imagesToPdf.ts`        | Decodes source images (repairing malformed PNGs, re-encoding WebP/GIF/BMP/etc. via canvas) and embeds them as PDF pages via pdf-lib.                                                              |
+| `pngIntegrity.ts`       | Detects and repairs malformed PNG headers before `pdf-lib.embedPng()` is called.                                                                                                                  |
+| `pdfErrors.ts`          | `PdfLoadError` taxonomy and `getFriendlyPdfError` — maps errors to user-friendly message strings.                                                                                                 |
+| `documentPipeline.ts`   | `PdfSource`/`ToolId`/`ExportResult` types, `isPdf`, `createPdfSourceFromFile`, and `buildDownloadName`/`buildDownloadNameFromSources` helpers.                                                    |
+| `bytes.ts`              | `cloneBytesToArrayBuffer` — isolates a `Uint8Array`'s bytes into a standalone `ArrayBuffer` so a `Blob` never aliases a shared/backing buffer.                                                    |
+| `downloads.ts`          | `triggerBlobDownload` — creates an object URL, clicks it, then schedules revocation.                                                                                                              |
+| `fileNames.ts`          | Per-operation download filename builders (dash-separated, e.g. `{stem}-{descriptor}-{timestamp}.pdf`) plus the shared `timestampToken()`/`sanitizeFileStem()` also used by `documentPipeline.ts`. |
+| `format.ts`             | `formatBytes` and `formatTimestamp` display helpers.                                                                                                                                              |
+| `pdfWorker.ts`          | Configures the pdf.js worker (sets `workerSrc` for the bundled worker file).                                                                                                                      |
+| `theme.ts`              | Reads/writes the theme preference to `localStorage`.                                                                                                                                              |
+| `ids.ts`                | `createLocalId(prefix)` — shared UUID-with-fallback helper for locally generated entity IDs.                                                                                                      |
 
 ---
 
@@ -116,7 +117,7 @@ Five Zustand stores, all in `src/state/`:
 **`pdfAssets`**
 
 - Used by the Merge tool to hold the ordered list of loaded PDFs (`assets[]`) plus busy/error state
-- `removeAsset`/`reset` call `asset.loaded.doc.destroy()` on each pdf.js document before dropping it — new code that removes or replaces assets must preserve this cleanup to avoid leaking pdf.js document handles
+- `removeAsset` calls `asset.loaded.doc.destroy()` before dropping an asset — new code that removes or replaces assets must preserve this cleanup to avoid leaking pdf.js document handles
 
 **`signatureLibrary`**
 

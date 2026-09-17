@@ -1,71 +1,137 @@
 # Document Pipeline Contract
 
-This contract describes the shared shapes and lifecycle every workspace must follow when ingesting, transforming, and exporting PDFs. It builds on the `LoadedPdf` type from `src/lib/pdfLoader.ts` and adds two companion types—`PdfSource` and `ExportResult`—so tools can share guardrails, logging, and download naming rules.
+This document describes the current data contract every tool follows when ingesting, loading,
+and exporting a PDF: the `PdfSource`, `LoadedPdf`, and `ExportResult` shapes, and the order
+operations move data through them.
+
+This is a narrow, data-shape contract only. Document lifetime, ownership, and cancellation
+(destruction timing, `pdfLifecycle`, `withPdfLease`) are covered in
+[`ARCHITECTURE.md`](ARCHITECTURE.md#document-ownership--lifetime) — see that document for how a
+document is actually kept alive or torn down; this one does not duplicate it.
 
 ## Core Types
 
 ```ts
-/** Raw file details before pdf.js has parsed anything. */
+// src/lib/documentPipeline.ts
+export type PdfSourceOrigin = "upload" | "drag-drop" | "generated" | "url";
+
 export type PdfSource = {
-  id: string; // mirrors FileSystem handle or upload batch id
-  origin: "upload" | "drag-drop" | "generated" | "url";
+  id: string;
+  origin: PdfSourceOrigin;
   name: string;
-  size: number; // bytes
-  lastModified?: number | null;
-  bytes: Uint8Array; // immutable copy stored in IndexedDB/memory
-  password?: string | null; // last provided password, if any
+  size: number;
+  lastModified: number | null;
+  bytes: Uint8Array;
+  password?: string | null;
 };
 
-/** Already parsed PDF with metadata + pdf.js proxy (lives in memory/workers). */
+export type ToolId =
+  | "viewer"
+  | "merge"
+  | "split"
+  | "editor"
+  | "images"
+  | "compression"
+  | "signatures"
+  | "pdf-to-images";
+
+export type ExportResult = {
+  blob: Blob;
+  size: number;
+  downloadName: string;
+  durationMs: number;
+  warnings?: string[];
+  activity: {
+    tool: ToolId;
+    operation: string;
+    sourceCount: number;
+    detail?: string;
+  };
+};
+```
+
+```ts
+// src/lib/pdfLoader.ts
 export type LoadedPdf = {
-  sourceId: PdfSource["id"];
-  id: string; // existing random UUID
+  sourceId?: string;
+  id: string;
   name: string;
   size: number;
   lastModified: number;
   pageCount: number;
   pdfVersion: string;
-  data: Uint8Array; // retained bytes
-  metadata: PdfDocumentMetadata;
-  doc: PDFDocumentProxy;
-};
-
-/** Standard export payload returned by any workspace action. */
-export type ExportResult = {
-  blob: Blob;
-  size: number; // bytes
-  downloadName: string; // e.g., `${baseName}.compressed.${timestamp}.pdf`
-  durationMs: number;
-  warnings?: string[]; // oversized, skipped vector compression, etc.
-  activity: {
-    tool: ToolId; // merge | split | editor | images | compression | signatures
-    operation: string; // e.g., "compress-balanced"
-    sourceCount: number;
-  };
+  data: Uint8Array; // retained bytes; pdf-lib re-parses these independently of `doc`
+  metadata: PdfDocumentMetadata; // see pdfLoader.ts
+  doc: PDFDocumentProxy; // live pdf.js handle — see ARCHITECTURE.md for its lifecycle
 };
 ```
 
 ## Lifecycle
 
-1. **Ingest** — Build a `PdfSource` for each incoming file and enqueue size/page-count checks before loading to pdf.js. Guardrails: block files over the configured cap, queue warnings for borderline cases, and surface password prompts through `PdfPasswordRequest`.
-2. **Load** — Pass `PdfSource.bytes` into `loadPdfFromFile` (or equivalent) to yield a `LoadedPdf`. Persist the one-to-one mapping `LoadedPdf.sourceId → PdfSource.id` for logging.
-3. **Workspace state** — Workspaces (merge, split, editor, compression, etc.) should operate solely on `LoadedPdf` references and pure derived state (thumbnails, edit instructions). They should never mutate the retained bytes in place.
-4. **Export** — When a workflow completes, return an `ExportResult`. Apply consistent naming (`${originalBase}.${operation}.${YYYYMMDD-HHmmss}.pdf` or `.zip`) and push the record into the activity log for the landing-page recap.
-5. **Cleanup** — Destroy `PDFDocumentProxy` instances and revoke object URLs after export or when closing a workspace to keep memory predictable.
+1. **Ingest** — `createPdfSourceFromFile(file)` builds a `PdfSource` from a `File`: reads its
+   bytes, assigns a local id via `createLocalId`, and records origin/name/size. There is no
+   centralized size or page-count cap enforced at this stage. A few tools show an advisory,
+   non-blocking message for large files (e.g. Compression's "PDFs over 50 MB may take longer to
+   process"), but nothing rejects ingest based on size or page count today.
+2. **Load** — `loadPdfFromSource(source, options)` (or `loadPdfFromFile(file, options)`) parses
+   the bytes with pdf.js and returns a `LoadedPdf`. A missing or incorrect password re-invokes the
+   caller's `requestPassword` callback and loops until a valid password is supplied or the caller
+   gives up. Failures are mapped to a `PdfErrorCode` (see Error Codes below) before being thrown.
+3. **Workspace state** — Tools hold their `LoadedPdf` via the shared `useLoadedPdf()` hook
+   (single-document tools) or the `pdfAssets` store (Merge's ordered list — see `ARCHITECTURE.md`
+   → State Management) and derive UI state (thumbnails, selections, edit history) from it without
+   mutating `LoadedPdf.data` in place.
+4. **Export** — A tool operation returns an `ExportResult`. `downloadName` is generated by one of
+   two helper sets that both exist in the current codebase: `buildDownloadName` /
+   `buildDownloadNameFromSources` (`documentPipeline.ts`, dot-separated —
+   `{stem}.{operation}.{timestamp}.{ext}` — used by Compression, PDF → Images, Merge, and
+   Signatures) or the per-operation builders in `fileNames.ts` (dash-separated, custom per
+   operation, used by Split, Page Editor, and Images → PDF). Both use the same shared
+   `timestampToken()` (an ISO-8601 timestamp with `:`/`.` replaced by `-`) for uniqueness. The tool
+   then calls `triggerBlobDownload(result.blob, result.downloadName)` and `logExportResult(result)`.
+5. **Cleanup** — Destroying the pdf.js document is owned entirely by `useLoadedPdf()`
+   (single-document tools) or `pdfAssets.removeAsset`/asset replacement (Merge). No other code
+   calls `doc.destroy()`. See `ARCHITECTURE.md`'s "Document Ownership & Lifetime" section for the
+   exact timing, including how an in-flight export is protected from a document being torn down
+   mid-operation.
 
-## Shared Guardrails & Telemetry Hooks
+## Activity Log & Download Naming
 
-- **Size/Page Caps:** `PdfSource` creation is the single place to enforce limits. Expose user-facing thresholds (e.g., 250MB or 1,000 pages) and provide actionable messages when exceeded.
-- **Abort/Cancellation:** Pass an `AbortSignal` through load/merge/split/compress helpers so users can cancel long-running image operations. Export helpers must listen for `signal.aborted` and reject with a typed `PdfOperationAborted` error.
-- **Activity Log:** `ExportResult.activity` feeds directly into `useActivityLog`. Always supply a short `operation` code so analytics, telemetry, and the landing page can summarize recent actions consistently.
-- **Error Taxonomy:** Map low-level failures into the codes documented in `docs/PDFWORKBENCH_ROADMAP.md` (password-required, corrupt, oversized, unsupported-encryption, render-failed). Surfacing identical codes across tools keeps UI copy and tests reusable.
-- **Download Naming:** Derive `downloadName` from `PdfSource.name` (first file for single-source operations, shared prefix + operation for multi-source). Append the operation and UTC timestamp so repeated downloads are unique but predictable.
+- `logExportResult(result: ExportResult)` (`src/state/activityLog.ts`) is the single entry point
+  every tool calls after a successful export. It derives a category, label, and detail string from
+  `result.activity` and appends to the persisted (localStorage-backed), 12-entry activity log that
+  the landing page reads.
+- Prefer the naming helpers above over hand-building a `downloadName` per tool, so filenames stay
+  predictable and unique across repeated exports.
 
-## Adoption Plan
+## Error Codes
 
-1. **State Stores:** Update `pdfAssets` Zustand store to track `PdfSource` records alongside `LoadedPdf` entries.
-2. **Lib Helpers:** Update merge/split/editor/images/compression helpers to accept `{ sources, abortSignal }` objects and to return `ExportResult` instead of raw `Blob`s.
-3. **Activity Log:** Replace ad-hoc calls to `useActivityLog` with a single `logExportResult(result: ExportResult)` helper that formats labels and details consistently.
-4. **Tests:** Introduce shared fixtures for `PdfSource`, `LoadedPdf`, and `ExportResult` so unit tests can assert on guardrail behavior (oversized rejections, warning propagation, cancel support).
+Load and operation failures are represented as a `PdfLoadError` carrying one of the codes in
+`PdfErrorCode` (`src/lib/pdfErrors.ts`): `password-required`, `password-incorrect`, `corrupt`,
+`missing-data`, `not-found`, `unsupported`, `unknown`. `getFriendlyPdfError` maps each to
+user-facing copy. Treat `pdfErrors.ts` as the source of truth for the current code list, not this
+document or the roadmap.
 
-Documenting the contract up front keeps phase 0.6.0+ work honest about privacy guarantees (“files stay on-device”), performance limits, and download behaviors while shrinking duplicate plumbing across workspaces.
+## Historical design notes
+
+The rest of this section describes design intent from before this contract was implemented. None
+of it is current behavior — it's kept only so a reader who finds an old reference to these ideas
+elsewhere understands they were superseded, not silently dropped.
+
+- **Per-operation `AbortSignal` cancellation.** An early draft of this contract proposed passing an
+  `AbortSignal` through every merge/split/compress/export helper, with export helpers rejecting a
+  cancelled operation with a typed `PdfOperationAborted` error. That never shipped, and no such
+  type or parameter exists in the codebase today. The cancellation model that did ship is
+  narrower and split into two distinct mechanisms — `pdfLifecycle` (an `AbortSignal` used only by
+  thumbnail rendering, for consumers that can stop immediately and safely) and `withPdfLease`
+  (lets a long-running export finish even if its document is reset, replaced, or its page
+  unmounts). See `ARCHITECTURE.md`'s "Document Ownership & Lifetime" section for how that actually
+  works.
+- **Centralized size/page caps.** An early draft proposed enforcing a hard size/page-count limit
+  (e.g. 250 MB or 1,000 pages) at `PdfSource` creation. That was never built.
+- **Adoption plan.** The original version of this document ended with a migration checklist:
+  update the `pdfAssets` store to track `PdfSource` records, migrate merge/split/editor/images/
+  compression helpers to accept `{ sources, abortSignal }` and return `ExportResult`, centralize
+  activity logging behind `logExportResult`, and add shared test fixtures. All of that shipped
+  except the `abortSignal` piece, which was superseded by the lease/lifecycle mechanism above
+  instead of being completed as originally proposed.
