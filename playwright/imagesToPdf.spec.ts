@@ -66,4 +66,41 @@ test.describe("Images to PDF E2E", () => {
 
     await expect(page.getByText(/Created PDF with 2 images/i)).toBeVisible();
   });
+
+  test("embeds a non-native format (GIF) by re-encoding it through canvas", async ({
+    page,
+  }, testInfo) => {
+    const sampleDir = path.join(testInfo.outputDir, "images-gif-sample");
+    await mkdir(sampleDir, { recursive: true });
+    const gifPath = path.join(sampleDir, "pixel.gif");
+    // 1x1 transparent GIF — pdf-lib can only embed PNG/JPEG directly, so this
+    // exercises the browser canvas decode-and-re-encode-to-JPEG fallback.
+    await writeFile(
+      gifPath,
+      Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==", "base64"),
+    );
+
+    page.on("console", (message) => console.log("[images-page]", message.text()));
+
+    await page.goto("/images");
+    const uploader = page.locator("#images-upload");
+    await uploader.waitFor({ state: "attached" });
+    await uploader.setInputFiles(gifPath);
+
+    await expect(page.locator('[data-image-list="true"] li')).toHaveCount(1);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: /Create 1-page PDF/i }).click();
+    const download = await downloadPromise;
+    const downloadPath = await download.path();
+    if (!downloadPath) {
+      throw new Error("Download path missing");
+    }
+
+    const bytes = await readFile(downloadPath);
+    const pdf = await PDFDocument.load(bytes);
+    expect(pdf.getPageCount()).toBe(1);
+
+    await expect(page.getByText(/Created PDF with 1 image\b/i)).toBeVisible();
+  });
 });

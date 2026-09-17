@@ -4,6 +4,20 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.5] — 2026-09-16
+
+### Improved
+
+- **Images → PDF's image/PDF processing logic moved out of the page component** into `src/lib/imagesToPdf.ts`, matching every other tool's `page → lib → pdf-lib/browser APIs` shape. `ImagesToPdfPage.tsx` now owns only UI state, drag/reorder, layout options, and download/activity triggering — it delegates image decoding, PNG repair, non-native format re-encoding (WebP/GIF/BMP/…), and PDF construction to the new module.
+- A genuinely unsupported file type now throws a typed `PdfLoadError` (`"unsupported"`) instead of a raw `Error`, so a future caller that doesn't already substitute its own message gets a safe one for free — today's per-image and per-export error messages shown to users are unchanged.
+
+### Tests
+
+- 15 new unit tests for `imagesToPdf.ts` covering: supported JPEG/PNG passthrough, JPEG MIME aliases, non-native format re-encoding to JPEG, an untyped file sniffed by PNG signature, the PNG repair path (succeeds, falls back to JPEG, and propagates a rejection when both attempts fail), a genuinely unsupported type, multi-image page ordering and count, page sizing from the requested layout, embed-failure wrapping, and the standardized export result shape.
+- 1 new Playwright test exercising the browser canvas re-encode path end-to-end with a real GIF upload — previously only the native-PNG path was covered by E2E.
+
+---
+
 ## [1.0.4] — 2026-09-16
 
 ### Fixed

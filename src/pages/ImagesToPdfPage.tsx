@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import clsx from "clsx";
-import { PDFDocument } from "pdf-lib";
 
 import { triggerBlobDownload } from "../lib/downloads";
-import { buildImagesPdfFileName } from "../lib/fileNames";
-import { computeImagePlacement, type FitMode } from "../lib/imageLayout";
-import { hasPngSignature, isPngBytesComplete } from "../lib/pngIntegrity";
-import { type ExportResult } from "../lib/documentPipeline";
-import { getFriendlyPdfError, PdfLoadError } from "../lib/pdfErrors";
-import { createLocalId } from "../lib/ids";
+import { type FitMode } from "../lib/imageLayout";
+import {
+  buildImagesPdfExportResult,
+  createImageAsset,
+  isSupportedImageFile,
+  type ImageAsset,
+} from "../lib/imagesToPdf";
+import { getFriendlyPdfError } from "../lib/pdfErrors";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { logExportResult } from "../state/activityLog";
 
@@ -26,148 +27,6 @@ const FIT_OPTIONS: { id: FitMode; label: string; description: string }[] = [
 
 const DEFAULT_MARGIN = 36;
 const MAX_IMAGES = 24;
-
-type EmbeddableMimeType = "image/png" | "image/jpeg";
-
-const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
-  return buffer;
-};
-
-type ImageAsset = {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  embedType: EmbeddableMimeType;
-  dataUrl: string;
-  width: number;
-  height: number;
-  bytes: Uint8Array;
-};
-
-const isImageFile = (file: File) => file.type.startsWith("image/");
-
-const loadDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
-    reader.readAsDataURL(file);
-  });
-
-const loadImageElement = (dataUrl: string) =>
-  new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Failed to load image"));
-    image.src = dataUrl;
-  });
-
-const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: EmbeddableMimeType) =>
-  new Promise<Blob>((resolve, reject) => {
-    const quality = mimeType === "image/jpeg" ? 0.92 : undefined;
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error("Failed to encode image."));
-        }
-      },
-      mimeType,
-      quality,
-    );
-  });
-
-const blobToUint8Array = async (blob: Blob) => {
-  const buffer = await blob.arrayBuffer();
-  return new Uint8Array(buffer);
-};
-
-const reencodeImageElement = async (image: HTMLImageElement, mimeType: EmbeddableMimeType) => {
-  const canvas = document.createElement("canvas");
-  const width = image.naturalWidth || image.width || 1;
-  const height = image.naturalHeight || image.height || 1;
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Canvas rendering context unavailable.");
-  }
-  context.drawImage(image, 0, 0, width, height);
-  const blob = await canvasToBlob(canvas, mimeType);
-  return blobToUint8Array(blob);
-};
-
-const ensureEmbeddableImageBytes = async (
-  fileType: string,
-  bytes: Uint8Array,
-  image: HTMLImageElement,
-): Promise<{ bytes: Uint8Array; embedType: EmbeddableMimeType }> => {
-  const normalizedType = fileType?.toLowerCase() ?? "";
-  const treatAsPng = normalizedType === "image/png" || (!normalizedType && hasPngSignature(bytes));
-
-  if (treatAsPng) {
-    if (isPngBytesComplete(bytes)) {
-      return { bytes, embedType: "image/png" };
-    }
-    try {
-      const repaired = await reencodeImageElement(image, "image/png");
-      if (isPngBytesComplete(repaired)) {
-        return { bytes: repaired, embedType: "image/png" };
-      }
-    } catch (repairError) {
-      console.warn("Failed to repair PNG before embedding", repairError);
-    }
-    const jpegFallback = await reencodeImageElement(image, "image/jpeg");
-    return { bytes: jpegFallback, embedType: "image/jpeg" };
-  }
-
-  const isJpeg =
-    normalizedType === "image/jpeg" ||
-    normalizedType === "image/jpg" ||
-    normalizedType === "image/pjpeg";
-
-  if (isJpeg) {
-    return { bytes, embedType: "image/jpeg" };
-  }
-
-  if (normalizedType.startsWith("image/") || normalizedType === "") {
-    const jpegBytes = await reencodeImageElement(image, "image/jpeg");
-    return { bytes: jpegBytes, embedType: "image/jpeg" };
-  }
-
-  throw new Error("Unsupported image type.");
-};
-
-const buildAsset = async (file: File): Promise<ImageAsset> => {
-  const [buffer, dataUrl] = await Promise.all([file.arrayBuffer(), loadDataUrl(file)]);
-  const sourceBytes = new Uint8Array(buffer);
-  const imageElement = await loadImageElement(dataUrl);
-  const { bytes: preparedBytes, embedType } = await ensureEmbeddableImageBytes(
-    file.type,
-    sourceBytes,
-    imageElement,
-  );
-  const bytes = new Uint8Array(preparedBytes.byteLength);
-  bytes.set(preparedBytes);
-  const width = imageElement.naturalWidth || imageElement.width;
-  const height = imageElement.naturalHeight || imageElement.height;
-  return {
-    id: createLocalId("image"),
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    embedType,
-    dataUrl,
-    width,
-    height,
-    bytes,
-  };
-};
 
 const getPresetById = (id: string) =>
   PAGE_PRESETS.find((preset) => preset.id === id) ?? PAGE_PRESETS[0];
@@ -197,7 +56,7 @@ const ImagesToPdfPage = () => {
       setError(null);
       const accepted: ImageAsset[] = [];
       for (const file of Array.from(files)) {
-        if (!isImageFile(file)) {
+        if (!isSupportedImageFile(file)) {
           setError("Only image files are supported.");
           continue;
         }
@@ -206,7 +65,7 @@ const ImagesToPdfPage = () => {
           break;
         }
         try {
-          const asset = await buildAsset(file);
+          const asset = await createImageAsset(file);
           accepted.push(asset);
         } catch (assetError) {
           console.error(assetError);
@@ -283,51 +142,13 @@ const ImagesToPdfPage = () => {
     setStatus(null);
     const startedAt = Date.now();
     try {
-      const doc = await PDFDocument.create();
-      for (const asset of images) {
-        const page = doc.addPage([orientedDimensions.width, orientedDimensions.height]);
-        let embedded;
-        try {
-          embedded =
-            asset.embedType === "image/png"
-              ? await doc.embedPng(asset.bytes)
-              : await doc.embedJpg(asset.bytes);
-        } catch (embedError) {
-          console.error(`Failed to embed image "${asset.name}"`, embedError);
-          throw new PdfLoadError(
-            "unsupported",
-            `"${asset.name}" could not be embedded — it may be corrupted or an unsupported image format.`,
-          );
-        }
-        const placement = computeImagePlacement(
-          asset.width,
-          asset.height,
-          { ...orientedDimensions, margin: DEFAULT_MARGIN },
-          fitMode,
-        );
-        page.drawImage(embedded, {
-          x: placement.x,
-          y: placement.y,
-          width: placement.width,
-          height: placement.height,
-        });
-      }
-      const bytes = await doc.save();
-      const blob = new Blob([cloneBytesToArrayBuffer(bytes)], { type: "application/pdf" });
-      const fileName = buildImagesPdfFileName(images[0]?.name ?? null, images.length);
-      const result: ExportResult = {
-        blob,
-        size: blob.size,
-        downloadName: fileName,
-        durationMs: Math.max(0, Date.now() - startedAt),
-        warnings: undefined,
-        activity: {
-          tool: "images",
-          operation: `images-to-pdf-${images.length}-pages`,
-          sourceCount: images.length,
-          detail: `${preset.label} · ${fitMode.toUpperCase()}`,
-        },
-      };
+      const result = await buildImagesPdfExportResult(images, {
+        ...orientedDimensions,
+        margin: DEFAULT_MARGIN,
+        fitMode,
+        presetLabel: preset.label,
+        startedAt,
+      });
 
       triggerBlobDownload(result.blob, result.downloadName);
       logExportResult(result);

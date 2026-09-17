@@ -43,26 +43,27 @@ vite.config.ts      Vite + Vitest config with manualChunks for vendor splitting
 
 ## Key Modules (`src/lib/`)
 
-| File                    | Purpose                                                                                                          |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `pdfLoader.ts`          | Loads a `File` through pdf.js, returns a `LoadedPdf`. Handles password prompts.                                  |
-| `pdfMerge.ts`           | Merges an ordered list of `LoadedPdf` objects into a single `Uint8Array` via pdf-lib.                            |
-| `pdfSplit.ts`           | Extracts page subsets (`extractPagesFromLoadedPdf`) or chunks (`splitPdfByChunkSize`) into `Uint8Array` results. |
-| `pdfEdit.ts`            | Applies reorder/rotate/delete instructions from the Page Editor and rebuilds the PDF.                            |
-| `pdfCompression.ts`     | Rasterises each page via pdf.js canvas at a preset DPI, re-encodes as JPEG, rebuilds with pdf-lib.               |
-| `pdfToImages.ts`        | Renders pages to canvas at configurable scale, exports as PNG or JPEG blobs, bundles as ZIP.                     |
-| `signaturePlacement.ts` | Coordinate mapping between canvas viewport pixels and pdf-lib PDF-unit coordinates.                              |
-| `signatureStamp.ts`     | Embeds signature images, text blocks, and pen strokes into the exported PDF.                                     |
-| `imageLayout.ts`        | Computes `x/y/width/height` for fit, fill, and center modes inside a page's margin box.                          |
-| `pngIntegrity.ts`       | Detects and repairs malformed PNG headers before `pdf-lib.embedPng()` is called.                                 |
-| `pdfErrors.ts`          | `PdfLoadError` taxonomy and `getFriendlyPdfError` — maps errors to user-friendly message strings.                |
-| `documentPipeline.ts`   | `PdfSource`/`ExportResult` types, `createPdfSourceFromFile`, and `buildDownloadName(FromSources)` helpers.       |
-| `downloads.ts`          | `triggerBlobDownload` — creates an object URL, clicks it, then schedules revocation.                             |
-| `fileNames.ts`          | Generates consistent download filenames (`{baseName}.{operation}.{timestamp}.{ext}`).                            |
-| `format.ts`             | `formatBytes` and `formatTimestamp` display helpers.                                                             |
-| `pdfWorker.ts`          | Configures the pdf.js worker (sets `workerSrc` for the bundled worker file).                                     |
-| `theme.ts`              | Reads/writes the theme preference to `localStorage`.                                                             |
-| `ids.ts`                | `createLocalId(prefix)` — shared UUID-with-fallback helper for locally generated entity IDs.                     |
+| File                    | Purpose                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `pdfLoader.ts`          | Loads a `File` through pdf.js, returns a `LoadedPdf`. Handles password prompts.                                                      |
+| `pdfMerge.ts`           | Merges an ordered list of `LoadedPdf` objects into a single `Uint8Array` via pdf-lib.                                                |
+| `pdfSplit.ts`           | Extracts page subsets (`extractPagesFromLoadedPdf`) or chunks (`splitPdfByChunkSize`) into `Uint8Array` results.                     |
+| `pdfEdit.ts`            | Applies reorder/rotate/delete instructions from the Page Editor and rebuilds the PDF.                                                |
+| `pdfCompression.ts`     | Rasterises each page via pdf.js canvas at a preset DPI, re-encodes as JPEG, rebuilds with pdf-lib.                                   |
+| `pdfToImages.ts`        | Renders pages to canvas at configurable scale, exports as PNG or JPEG blobs, bundles as ZIP.                                         |
+| `signaturePlacement.ts` | Coordinate mapping between canvas viewport pixels and pdf-lib PDF-unit coordinates.                                                  |
+| `signatureStamp.ts`     | Embeds signature images, text blocks, and pen strokes into the exported PDF.                                                         |
+| `imageLayout.ts`        | Computes `x/y/width/height` for fit, fill, and center modes inside a page's margin box.                                              |
+| `imagesToPdf.ts`        | Decodes source images (repairing malformed PNGs, re-encoding WebP/GIF/BMP/etc. via canvas) and embeds them as PDF pages via pdf-lib. |
+| `pngIntegrity.ts`       | Detects and repairs malformed PNG headers before `pdf-lib.embedPng()` is called.                                                     |
+| `pdfErrors.ts`          | `PdfLoadError` taxonomy and `getFriendlyPdfError` — maps errors to user-friendly message strings.                                    |
+| `documentPipeline.ts`   | `PdfSource`/`ExportResult` types, `createPdfSourceFromFile`, and `buildDownloadName(FromSources)` helpers.                           |
+| `downloads.ts`          | `triggerBlobDownload` — creates an object URL, clicks it, then schedules revocation.                                                 |
+| `fileNames.ts`          | Generates consistent download filenames (`{baseName}.{operation}.{timestamp}.{ext}`).                                                |
+| `format.ts`             | `formatBytes` and `formatTimestamp` display helpers.                                                                                 |
+| `pdfWorker.ts`          | Configures the pdf.js worker (sets `workerSrc` for the bundled worker file).                                                         |
+| `theme.ts`              | Reads/writes the theme preference to `localStorage`.                                                                                 |
+| `ids.ts`                | `createLocalId(prefix)` — shared UUID-with-fallback helper for locally generated entity IDs.                                         |
 
 ---
 
