@@ -4,6 +4,18 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.7] — 2026-09-16
+
+### Fixed
+
+- **"Reset workspace," replacing the file, and Ctrl+O could destroy the active document while Compression, PDF → Images, Split, or Page Editor were still reading pages from it for an in-flight compress/export/split/apply-edits operation.** The operation then failed against a destroyed pdf.js document, surfacing a misleading generic error instead of the real cause. Each page's existing busy flag (`isCompressing`, `isExporting`, `isDownloading`, or `isSelectionDownloading`/`isBundleDownloading` on Split) now also guards `resetWorkspace()` and file replacement (`handleFilesSelected`, which covers the file picker, drag-and-drop, and Ctrl+O alike) with an early return, and disables the Reset button and file input in the UI while busy. The guard is independent of the `disabled` attribute, so a stale click can't slip through it.
+
+### Tests
+
+- 13 new focused tests across `CompressionToolPage.test.tsx`, `SplitToolPage.test.tsx`, and two new files `PdfToImagesPage.test.tsx`/`PageEditorPage.test.tsx`, verifying: Reset and the file input are disabled while the relevant operation is in flight; clicking Reset (even with the `disabled` attribute stripped, simulating a stale/programmatic click) never calls the underlying document reset; both re-enable once the operation finishes, on both success and failure.
+
+---
+
 ## [1.0.6] — 2026-09-16
 
 ### Fixed

@@ -127,16 +127,28 @@ const PageEditorPage = () => {
   }, [pdf, pdfLifecycle]);
 
   const resetWorkspace = useCallback(() => {
+    if (isDownloading) {
+      // The export is still reading pages from the active document —
+      // destroying it now would fail the in-flight operation with a
+      // misleading error instead of the real cause.
+      return;
+    }
     resetPdf();
     setDownloadError(null);
     setDownloadSuccess(null);
-  }, [resetPdf]);
+  }, [isDownloading, resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
+      if (isDownloading) {
+        // Replacing the file (picker, drag-drop, or Ctrl+O) destroys the
+        // current document the same way Reset does — block it for the
+        // same reason while the export is in flight.
+        return;
+      }
       void loadFile(files[0]);
     },
-    [loadFile],
+    [isDownloading, loadFile],
   );
 
   const {
@@ -320,15 +332,16 @@ const PageEditorPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input id="editor-upload" {...inputProps} />
+            <input id="editor-upload" {...inputProps} disabled={isDownloading} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>
             {pdf ? (
               <button
                 type="button"
-                className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300"
+                className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline dark:text-slate-300"
                 onClick={resetWorkspace}
+                disabled={isDownloading}
               >
                 Reset workspace
               </button>

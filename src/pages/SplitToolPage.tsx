@@ -122,19 +122,31 @@ const SplitToolPage = () => {
     return Array.from({ length: pdf.pageCount }, (_, index) => index + 1);
   }, [pdf]);
 
+  // Either download can be reading pages from the active document —
+  // destroying it mid-operation would fail with a misleading error
+  // instead of the real cause, so both Reset and file replacement are
+  // blocked while either is in flight.
+  const isBusy = isSelectionDownloading || isBundleDownloading;
+
   const resetWorkspace = useCallback(() => {
+    if (isBusy) {
+      return;
+    }
     resetPdf();
     setSelectionError(null);
     setSelectionSuccess(null);
     setBundleError(null);
     setBundleSuccess(null);
-  }, [resetPdf]);
+  }, [isBusy, resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
+      if (isBusy) {
+        return;
+      }
       void loadFile(files[0]);
     },
-    [loadFile],
+    [isBusy, loadFile],
   );
 
   const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
@@ -311,15 +323,16 @@ const SplitToolPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input id="split-upload" {...inputProps} />
+            <input id="split-upload" {...inputProps} disabled={isBusy} />
             <span className="text-xs uppercase tracking-wide text-slate-400">
               or drag anywhere in this panel
             </span>
             {pdf ? (
               <button
                 type="button"
-                className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline dark:text-slate-300"
+                className="text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline dark:text-slate-300"
                 onClick={resetWorkspace}
+                disabled={isBusy}
               >
                 Reset workspace
               </button>

@@ -60,17 +60,29 @@ const PdfToImagesPage = () => {
   }, [status]);
 
   const resetWorkspace = useCallback(() => {
+    if (isExporting) {
+      // Export is still reading pages from the active document —
+      // destroying it now would fail the in-flight operation with a
+      // misleading error instead of the real cause.
+      return;
+    }
     resetPdf();
     setExportError(null);
     setExportSuccess(null);
     setProgress({ done: 0, total: 0 });
-  }, [resetPdf]);
+  }, [isExporting, resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
+      if (isExporting) {
+        // Replacing the file (picker, drag-drop, or Ctrl+O) destroys the
+        // current document the same way Reset does — block it for the
+        // same reason while export is in flight.
+        return;
+      }
       void loadFile(files[0]);
     },
-    [loadFile],
+    [isExporting, loadFile],
   );
 
   const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
@@ -169,7 +181,7 @@ const PdfToImagesPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input id="pdf-to-images-upload" {...inputProps} />
+            <input id="pdf-to-images-upload" {...inputProps} disabled={isExporting} />
             <span className="text-xs uppercase tracking-[0.4em] text-slate-400">
               or drag files anywhere in this panel
             </span>
@@ -223,8 +235,9 @@ const PdfToImagesPage = () => {
               </div>
               <button
                 type="button"
-                className="text-xs font-semibold uppercase tracking-widest text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300"
+                className="text-xs font-semibold uppercase tracking-widest text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline dark:text-slate-300"
                 onClick={resetWorkspace}
+                disabled={isExporting}
               >
                 Reset workspace
               </button>

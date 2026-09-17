@@ -9,11 +9,11 @@ vi.mock("../lib/downloads", () => ({
   triggerBlobDownload: vi.fn(),
 }));
 
-vi.mock("../lib/pdfSplit", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../lib/pdfSplit")>();
+vi.mock("../lib/pdfEdit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/pdfEdit")>();
   return {
     ...actual,
-    extractPagesFromLoadedPdf: vi.fn(),
+    applyPageEdits: vi.fn(),
   };
 });
 
@@ -21,13 +21,12 @@ vi.mock("../hooks/useLoadedPdf", () => ({
   useLoadedPdf: () => mockUseLoadedPdfState,
 }));
 
-import SplitToolPage from "./SplitToolPage";
-import { extractPagesFromLoadedPdf } from "../lib/pdfSplit";
-import { useActivityLog } from "../state/activityLog";
+import PageEditorPage from "./PageEditorPage";
+import { applyPageEdits } from "../lib/pdfEdit";
 import type { LoadedPdfStatus } from "../hooks/useLoadedPdf";
 import type { LoadedPdf } from "../lib/pdfLoader";
 
-const mockExtractPagesFromLoadedPdf = vi.mocked(extractPagesFromLoadedPdf);
+const mockApplyPageEdits = vi.mocked(applyPageEdits);
 
 const idleHookState = {
   pdf: null as LoadedPdf | null,
@@ -50,7 +49,7 @@ const createFakeLoadedPdf = (): LoadedPdf =>
     name: "sample.pdf",
     size: 1024,
     lastModified: Date.now(),
-    pageCount: 3,
+    pageCount: 1,
     pdfVersion: "test",
     data: new Uint8Array(),
     metadata: {},
@@ -67,9 +66,8 @@ const createDeferred = <T,>() => {
   return { promise, resolve, reject };
 };
 
-describe("SplitToolPage", () => {
+describe("PageEditorPage", () => {
   beforeEach(() => {
-    useActivityLog.getState().reset();
     vi.clearAllMocks();
     mockUseLoadedPdfState = idleHookState;
   });
@@ -78,18 +76,12 @@ describe("SplitToolPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the split workspace hero messaging before a PDF is loaded", () => {
-    render(<SplitToolPage />);
-    expect(screen.getByText(/Split PDFs with precision/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Drop a PDF to unlock thumbnail previews, selection controls, and split presets/i,
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Choose a PDF/i)).toBeInTheDocument();
+  it("renders the upload prompt when no PDF is loaded", () => {
+    render(<PageEditorPage />);
+    expect(screen.getByText(/Reorder, rotate, and curate/i)).toBeInTheDocument();
   });
 
-  describe("Reset workspace while downloading a selection", () => {
+  describe("Reset workspace while applying edits", () => {
     beforeEach(() => {
       mockUseLoadedPdfState = {
         ...idleHookState,
@@ -99,18 +91,17 @@ describe("SplitToolPage", () => {
       };
     });
 
-    it("disables Reset workspace and the file input while a selection download is in flight, and re-enables both when it finishes", async () => {
+    it("disables Reset workspace and the file input while the export is in flight, and re-enables both when it finishes", async () => {
       const deferred = createDeferred<Uint8Array>();
-      mockExtractPagesFromLoadedPdf.mockReturnValue(deferred.promise);
+      mockApplyPageEdits.mockReturnValue(deferred.promise);
 
-      render(<SplitToolPage />);
+      render(<PageEditorPage />);
 
-      fireEvent.click(screen.getByRole("button", { name: /select all/i }));
-      fireEvent.click(screen.getByRole("button", { name: /download selection/i }));
+      fireEvent.click(await screen.findByRole("button", { name: /apply & download/i }));
 
       const resetButton = await screen.findByRole("button", { name: /reset workspace/i });
       await waitFor(() => expect(resetButton).toBeDisabled());
-      const fileInput = document.querySelector<HTMLInputElement>("#split-upload")!;
+      const fileInput = document.querySelector<HTMLInputElement>("#editor-upload")!;
       expect(fileInput.disabled).toBe(true);
 
       fireEvent.click(resetButton);
@@ -122,14 +113,13 @@ describe("SplitToolPage", () => {
       expect(fileInput.disabled).toBe(false);
     });
 
-    it("resetWorkspace guard prevents reset() from running while downloading, independent of the disabled attribute", async () => {
+    it("resetWorkspace guard prevents reset() from running while applying edits, independent of the disabled attribute", async () => {
       const deferred = createDeferred<Uint8Array>();
-      mockExtractPagesFromLoadedPdf.mockReturnValue(deferred.promise);
+      mockApplyPageEdits.mockReturnValue(deferred.promise);
 
-      render(<SplitToolPage />);
+      render(<PageEditorPage />);
 
-      fireEvent.click(screen.getByRole("button", { name: /select all/i }));
-      fireEvent.click(screen.getByRole("button", { name: /download selection/i }));
+      fireEvent.click(await screen.findByRole("button", { name: /apply & download/i }));
       const resetButton = await screen.findByRole("button", { name: /reset workspace/i });
       await waitFor(() => expect(resetButton).toBeDisabled());
 
@@ -139,14 +129,13 @@ describe("SplitToolPage", () => {
       expect(mockUseLoadedPdfState.reset).toHaveBeenCalledTimes(0);
     });
 
-    it("re-enables Reset workspace after a failed selection download", async () => {
+    it("re-enables Reset workspace after a failed export", async () => {
       const deferred = createDeferred<Uint8Array>();
-      mockExtractPagesFromLoadedPdf.mockReturnValue(deferred.promise);
+      mockApplyPageEdits.mockReturnValue(deferred.promise);
 
-      render(<SplitToolPage />);
+      render(<PageEditorPage />);
 
-      fireEvent.click(screen.getByRole("button", { name: /select all/i }));
-      fireEvent.click(screen.getByRole("button", { name: /download selection/i }));
+      fireEvent.click(await screen.findByRole("button", { name: /apply & download/i }));
       const resetButton = await screen.findByRole("button", { name: /reset workspace/i });
       await waitFor(() => expect(resetButton).toBeDisabled());
 

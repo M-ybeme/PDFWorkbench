@@ -10,7 +10,7 @@ import clsx from "clsx";
 
 import logoSrc from "/PDFWorkbenchLogo.png?url";
 
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.0.7";
 
 const AppShell = () => {
   const navOpen = useUIState((state) => state.navOpen);

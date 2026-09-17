@@ -65,17 +65,29 @@ const CompressionToolPage = () => {
   }, [status]);
 
   const resetWorkspace = useCallback(() => {
+    if (isCompressing) {
+      // Compression is still reading pages from the active document —
+      // destroying it now would fail the in-flight operation with a
+      // misleading error instead of the real cause.
+      return;
+    }
     resetPdf();
     setCompressionError(null);
     setCompressionSuccess(null);
     setLastResult(null);
-  }, [resetPdf]);
+  }, [isCompressing, resetPdf]);
 
   const handleFilesSelected = useCallback(
     (files: FileList) => {
+      if (isCompressing) {
+        // Replacing the file (picker, drag-drop, or Ctrl+O) destroys the
+        // current document the same way Reset does — block it for the
+        // same reason while compression is in flight.
+        return;
+      }
       void loadFile(files[0]);
     },
-    [loadFile],
+    [isCompressing, loadFile],
   );
 
   const { isDragActive, inputProps, dropZoneProps } = useDragDrop({
@@ -167,7 +179,7 @@ const CompressionToolPage = () => {
             >
               {pdf ? "Replace PDF" : "Choose a PDF"}
             </label>
-            <input id="compression-upload" {...inputProps} />
+            <input id="compression-upload" {...inputProps} disabled={isCompressing} />
             <span className="text-xs uppercase tracking-[0.4em] text-slate-400">
               or drag files anywhere in this panel
             </span>
@@ -221,8 +233,9 @@ const CompressionToolPage = () => {
               </div>
               <button
                 type="button"
-                className="text-xs font-semibold uppercase tracking-widest text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300"
+                className="text-xs font-semibold uppercase tracking-widest text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline dark:text-slate-300"
                 onClick={resetWorkspace}
+                disabled={isCompressing}
               >
                 Reset workspace
               </button>
