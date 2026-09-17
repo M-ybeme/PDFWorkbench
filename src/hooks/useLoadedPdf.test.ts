@@ -93,6 +93,56 @@ describe("useLoadedPdf", () => {
     expect(pdfB.doc.destroy).toHaveBeenCalledTimes(0);
   });
 
+  it("exposes a fresh, non-aborted pdfLifecycle for each loaded document, and null when idle", async () => {
+    const pdfA = createFakeLoadedPdf("a.pdf");
+    const pdfB = createFakeLoadedPdf("b.pdf");
+    mockLoadPdfFromFile.mockResolvedValueOnce(pdfA).mockResolvedValueOnce(pdfB);
+
+    const { result } = renderHook(() => useLoadedPdf());
+    expect(result.current.pdfLifecycle).toBeNull();
+
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+    const lifecycleA = result.current.pdfLifecycle;
+    expect(lifecycleA).toBeTruthy();
+    expect(lifecycleA?.aborted).toBe(false);
+
+    await act(async () => {
+      await result.current.loadFile(createFile("b.pdf"));
+    });
+    const lifecycleB = result.current.pdfLifecycle;
+    expect(lifecycleB).toBeTruthy();
+    expect(lifecycleB === lifecycleA).toBe(false);
+    expect(lifecycleB?.aborted).toBe(false);
+  });
+
+  it("aborts the previous document's pdfLifecycle synchronously when a replacement starts, before the new file finishes loading", async () => {
+    const pdfA = createFakeLoadedPdf("a.pdf");
+    const neverResolves = createDeferred<LoadedPdf>();
+    mockLoadPdfFromFile.mockResolvedValueOnce(pdfA).mockReturnValueOnce(neverResolves.promise);
+
+    const { result } = renderHook(() => useLoadedPdf());
+
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+    const lifecycleA = result.current.pdfLifecycle;
+    expect(lifecycleA?.aborted).toBe(false);
+
+    // The replacement's own load is still pending (never resolves), but the
+    // old document's lifecycle must already be aborted — the whole point is
+    // that dependents are cancelled before, not after, the pdf.js document
+    // is destroyed, and destruction happens synchronously at the start of
+    // loadFile, well before the new file is even read.
+    act(() => {
+      void result.current.loadFile(createFile("b.pdf"));
+    });
+
+    expect(lifecycleA?.aborted).toBe(true);
+    expect(pdfA.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it("destroys the current document on reset", async () => {
     const fakePdf = createFakeLoadedPdf("a.pdf");
     mockLoadPdfFromFile.mockResolvedValue(fakePdf);
@@ -113,6 +163,26 @@ describe("useLoadedPdf", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("aborts pdfLifecycle on reset, before the document is destroyed", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result } = renderHook(() => useLoadedPdf());
+
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+    const lifecycle = result.current.pdfLifecycle;
+    expect(lifecycle?.aborted).toBe(false);
+
+    act(() => {
+      result.current.reset();
+    });
+
+    expect(lifecycle?.aborted).toBe(true);
+    expect(result.current.pdfLifecycle).toBeNull();
+  });
+
   it("destroys the current document on unmount", async () => {
     const fakePdf = createFakeLoadedPdf("a.pdf");
     mockLoadPdfFromFile.mockResolvedValue(fakePdf);
@@ -126,6 +196,23 @@ describe("useLoadedPdf", () => {
     unmount();
 
     expect(fakePdf.doc.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts pdfLifecycle on unmount, before the document is destroyed", async () => {
+    const fakePdf = createFakeLoadedPdf("a.pdf");
+    mockLoadPdfFromFile.mockResolvedValue(fakePdf);
+
+    const { result, unmount } = renderHook(() => useLoadedPdf());
+
+    await act(async () => {
+      await result.current.loadFile(createFile("a.pdf"));
+    });
+    const lifecycle = result.current.pdfLifecycle;
+    expect(lifecycle?.aborted).toBe(false);
+
+    unmount();
+
+    expect(lifecycle?.aborted).toBe(true);
   });
 
   it("shows the password prompt when a password is required, then loads after the correct password", async () => {

@@ -4,6 +4,20 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.4] — 2026-09-16
+
+### Fixed
+
+- **Replacing, resetting, or navigating away from a PDF while its thumbnails were still rendering could hang that render loop forever, or log a benign document replacement as a rendering error.** `useLoadedPdf()` destroyed the pdf.js document synchronously, but each page's own thumbnail cancellation only ran once React processed the resulting state update — by which time the document's worker could already be gone. `useLoadedPdf()` now exposes `pdfLifecycle`, an `AbortSignal` tied to the current document's generation that it aborts in the same synchronous step as destroying the document, before any state update or effect cleanup runs. `PdfViewerPage`, `SplitToolPage`, and `PageEditorPage` pass this signal straight into `renderThumbnails()` instead of each managing their own `AbortController`.
+- `renderThumbnails()` no longer assumes `pdf.doc.getPage()` will always eventually settle — pdf.js can abandon a pending request outright when a document's worker is terminated mid-call, which used to hang the thumbnail loop indefinitely. It also now proactively cancels an in-flight render task the moment its document is invalidated, rather than waiting for pdf.js's own teardown to reject it, so a benign replacement can't be misreported as a genuine render failure.
+
+### Tests
+
+- 4 new tests for `useLoadedPdf` verifying `pdfLifecycle` aborts synchronously on replace, reset, and unmount — before, not after, React's own effect cleanup would run — and that each newly loaded document gets a fresh, non-aborted signal.
+- 3 new tests for `renderThumbnails` covering a `getPage()` call that never settles, an in-flight render cancelled via the lifecycle signal (treated as cancellation, not an error, with cleanup still occurring), and a genuine render failure still propagating normally when unrelated to cancellation.
+
+---
+
 ## [1.0.3] — 2026-09-16
 
 ### Improved

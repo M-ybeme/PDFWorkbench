@@ -57,6 +57,7 @@ const pagesChanged = (a: EditablePage[], b: EditablePage[]) => {
 const PageEditorPage = () => {
   const {
     pdf,
+    pdfLifecycle,
     status,
     error,
     passwordPrompt,
@@ -99,17 +100,15 @@ const PageEditorPage = () => {
   }, [pdf]);
 
   useEffect(() => {
-    if (!pdf) {
+    if (!pdf || !pdfLifecycle) {
       return;
     }
-
-    const controller = new AbortController();
 
     const buildThumbnails = async () => {
       try {
         for await (const thumb of renderThumbnails(pdf, {
           scale: THUMBNAIL_SCALE,
-          signal: controller.signal,
+          signal: pdfLifecycle,
         })) {
           const id = buildEditablePageId(pdf.id, thumb.pageNumber - 1);
           setThumbnails((current) => {
@@ -125,11 +124,7 @@ const PageEditorPage = () => {
     };
 
     void buildThumbnails();
-
-    return () => {
-      controller.abort();
-    };
-  }, [pdf]);
+  }, [pdf, pdfLifecycle]);
 
   const resetWorkspace = useCallback(() => {
     resetPdf();

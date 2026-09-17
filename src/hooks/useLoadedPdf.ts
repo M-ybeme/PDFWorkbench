@@ -38,6 +38,23 @@ export function useLoadedPdf() {
   const pdfRef = useRef<LoadedPdf | null>(null);
   const tokenRef = useRef(0);
 
+  // Signals the current document's lifecycle to anyone doing async work
+  // against it (currently: thumbnail rendering) that outlives a single
+  // render. It exists because destroying the pdf.js document below is
+  // synchronous, but the consuming page's own effect cleanup for the old
+  // `pdf` value doesn't run until React processes the resulting state
+  // update — by which time the document (and its worker) may already be
+  // gone. Aborting this ref's controller happens in the same synchronous
+  // step as destroying the document, so a consumer holding the signal from
+  // its own closure sees the abort immediately, with no dependency on
+  // React's render/effect timing.
+  const lifecycleRef = useRef<AbortController | null>(null);
+
+  const invalidateLifecycle = useCallback(() => {
+    lifecycleRef.current?.abort();
+    lifecycleRef.current = null;
+  }, []);
+
   useEffect(() => {
     configurePdfWorker();
   }, []);
@@ -53,15 +70,17 @@ export function useLoadedPdf() {
     return () => {
       tokenRef.current += 1;
       cancelPassword();
+      invalidateLifecycle();
       if (pdfRef.current) {
         destroySafely(pdfRef.current.doc);
         pdfRef.current = null;
       }
     };
-  }, [cancelPassword]);
+  }, [cancelPassword, invalidateLifecycle]);
 
   const commitPdf = useCallback((next: LoadedPdf | null) => {
     pdfRef.current = next;
+    lifecycleRef.current = next ? new AbortController() : null;
     setPdf(next);
   }, []);
 
@@ -80,6 +99,8 @@ export function useLoadedPdf() {
 
       const previous = pdfRef.current;
       if (previous) {
+        // Cancel dependents before destroying — see lifecycleRef above.
+        invalidateLifecycle();
         destroySafely(previous.doc);
         pdfRef.current = null;
       }
@@ -113,12 +134,13 @@ export function useLoadedPdf() {
         setError(getFriendlyPdfError(loadProblem));
       }
     },
-    [cancelPassword, commitPdf, requestPassword],
+    [cancelPassword, commitPdf, invalidateLifecycle, requestPassword],
   );
 
   const reset = useCallback(() => {
     cancelPassword();
     tokenRef.current += 1; // invalidate any load still in flight
+    invalidateLifecycle();
 
     if (pdfRef.current) {
       destroySafely(pdfRef.current.doc);
@@ -128,7 +150,7 @@ export function useLoadedPdf() {
     setPdf(null);
     setStatus("idle");
     setError(null);
-  }, [cancelPassword]);
+  }, [cancelPassword, invalidateLifecycle]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -136,6 +158,11 @@ export function useLoadedPdf() {
 
   return {
     pdf,
+    // Aborts the instant `pdf` is superseded or destroyed (replace, reset,
+    // or unmount) — always in lockstep with `pdf` itself, so a consumer can
+    // safely pass it straight to async work scoped to "while this document
+    // is current" without its own AbortController. See lifecycleRef above.
+    pdfLifecycle: lifecycleRef.current?.signal ?? null,
     status,
     error,
     passwordPrompt,

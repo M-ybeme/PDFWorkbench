@@ -40,6 +40,7 @@ const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
 const SplitToolPage = () => {
   const {
     pdf,
+    pdfLifecycle,
     status,
     error,
     passwordPrompt,
@@ -78,13 +79,12 @@ const SplitToolPage = () => {
   }, [pdf]);
 
   useEffect(() => {
-    if (!pdf) {
+    if (!pdf || !pdfLifecycle) {
       setThumbnails([]);
       setThumbnailStatus("idle");
       return;
     }
 
-    const controller = new AbortController();
     setThumbnails([]);
     setThumbnailStatus("rendering");
 
@@ -92,7 +92,7 @@ const SplitToolPage = () => {
       try {
         for await (const thumb of renderThumbnails(pdf, {
           scale: THUMBNAIL_SCALE,
-          signal: controller.signal,
+          signal: pdfLifecycle,
         })) {
           setThumbnails((current) => [
             ...current,
@@ -100,23 +100,19 @@ const SplitToolPage = () => {
           ]);
         }
 
-        if (!controller.signal.aborted) {
+        if (!pdfLifecycle.aborted) {
           setThumbnailStatus("ready");
         }
       } catch (thumbnailError) {
         console.error(thumbnailError);
-        if (!controller.signal.aborted) {
+        if (!pdfLifecycle.aborted) {
           setThumbnailStatus("idle");
         }
       }
     };
 
     void buildThumbnails();
-
-    return () => {
-      controller.abort();
-    };
-  }, [pdf]);
+  }, [pdf, pdfLifecycle]);
 
   const allPages = useMemo(() => {
     if (!pdf) {

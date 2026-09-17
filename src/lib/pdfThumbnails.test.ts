@@ -3,25 +3,39 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderThumbnails } from "./pdfThumbnails";
 import type { LoadedPdf } from "./pdfLoader";
 
-const createFakePage = (renderPromise: Promise<void> = Promise.resolve()) => {
+const createFakePage = (
+  renderPromise: Promise<void> = Promise.resolve(),
+  cancel: () => void = vi.fn(),
+) => {
   return {
     getViewport: vi.fn((options: { scale: number }) => ({
       width: 100 * options.scale,
       height: 200 * options.scale,
     })),
-    render: vi.fn(() => ({ promise: renderPromise })),
+    render: vi.fn(() => ({ promise: renderPromise, cancel })),
     cleanup: vi.fn(),
   };
 };
 
 type FakePage = ReturnType<typeof createFakePage>;
 
-const createFakePdf = (pages: FakePage[]): LoadedPdf =>
+const createFakePdf = (pages: FakePage[], pageCount = pages.length): LoadedPdf =>
   ({
     id: "pdf-1",
-    pageCount: pages.length,
+    pageCount,
     doc: {
       getPage: vi.fn((pageNumber: number) => Promise.resolve(pages[pageNumber - 1])),
+    },
+  }) as unknown as LoadedPdf;
+
+// A pdf whose getPage() never settles, like pdf.js abandoning a pending
+// request when the document's worker is terminated mid-call.
+const createFakePdfWithHangingGetPage = (pageCount: number): LoadedPdf =>
+  ({
+    id: "pdf-1",
+    pageCount,
+    doc: {
+      getPage: vi.fn(() => new Promise(() => {})),
     },
   }) as unknown as LoadedPdf;
 
@@ -121,5 +135,58 @@ describe("renderThumbnails", () => {
 
     expect(result.done).toBe(true);
     expect(pageTwo.getViewport).toHaveBeenCalledTimes(0);
+  });
+
+  it("terminates instead of hanging forever when the signal aborts while getPage() is still pending", async () => {
+    // Reproduces the review finding: pdf.js can abandon a pending getPage()
+    // promise outright (never resolve or reject it) if the document's
+    // worker is terminated mid-request.
+    const pdf = createFakePdfWithHangingGetPage(1);
+    const controller = new AbortController();
+
+    const iterator = renderThumbnails(pdf, { scale: 0.2, signal: controller.signal });
+    const pending = iterator.next();
+    controller.abort();
+    const result = await pending;
+
+    expect(result.done).toBe(true);
+  });
+
+  it("cancels an in-flight render when the signal aborts, treating it as cancellation rather than a real error, and still cleans up", async () => {
+    let rejectRender!: (error: unknown) => void;
+    const renderPromise = new Promise<void>((_resolve, reject) => {
+      rejectRender = reject;
+    });
+    const controller = new AbortController();
+    const cancel = vi.fn(() => rejectRender(new Error("Rendering cancelled")));
+    // The document is replaced (aborting the signal) the instant rendering
+    // starts, mirroring a real render that's in flight when the underlying
+    // document is destroyed.
+    const page = createFakePage(renderPromise, cancel);
+    page.render.mockImplementation(() => {
+      queueMicrotask(() => controller.abort());
+      return { promise: renderPromise, cancel };
+    });
+    const pdf = createFakePdf([page]);
+
+    const thumbnails = await collect(
+      renderThumbnails(pdf, { scale: 0.2, signal: controller.signal }),
+    );
+
+    expect(thumbnails).toEqual([]);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(page.cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("still propagates a genuine render failure that is unrelated to cancellation", async () => {
+    const failingRender = Promise.reject(new Error("pdf.js render failure"));
+    const page = createFakePage(failingRender);
+    const pdf = createFakePdf([page]);
+    const controller = new AbortController();
+
+    const iterator = renderThumbnails(pdf, { scale: 0.2, signal: controller.signal });
+    await expect(iterator.next()).rejects.toThrow("pdf.js render failure");
+    expect(controller.signal.aborted).toBe(false);
+    expect(page.cleanup).toHaveBeenCalledTimes(1);
   });
 });
