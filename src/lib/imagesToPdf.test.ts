@@ -6,6 +6,7 @@ import {
   buildImagesPdf,
   buildImagesPdfExportResult,
   ensureEmbeddableImageBytes,
+  ensureValidImageDimensions,
   isSupportedImageFile,
 } from "./imagesToPdf";
 import { PdfLoadError } from "./pdfErrors";
@@ -168,8 +169,31 @@ describe("ensureEmbeddableImageBytes", () => {
   });
 });
 
+describe("ensureValidImageDimensions", () => {
+  it("accepts positive dimensions", () => {
+    expect(ensureValidImageDimensions(100, 200, "photo.png")).toBeUndefined();
+  });
+
+  it("rejects zero width or height with a safe, typed error naming the file", () => {
+    expect(() => ensureValidImageDimensions(0, 200, "broken.png")).toThrow(PdfLoadError);
+    expect(() => ensureValidImageDimensions(0, 200, "broken.png")).toThrow(/broken\.png/);
+    expect(() => ensureValidImageDimensions(100, 0, "broken.png")).toThrow(PdfLoadError);
+  });
+
+  it("rejects negative dimensions", () => {
+    expect(() => ensureValidImageDimensions(-1, 100, "broken.png")).toThrow(PdfLoadError);
+  });
+});
+
 describe("buildImagesPdf", () => {
   const layout = { width: 612, height: 792, margin: 36, fitMode: "fit" as const };
+
+  it("rejects an asset with zero dimensions instead of embedding a blank page", async () => {
+    const degenerate = createFakeAsset({ name: "blank.png", width: 0, height: 0 });
+
+    await expect(buildImagesPdf([degenerate], layout)).rejects.toThrow(PdfLoadError);
+    await expect(buildImagesPdf([degenerate], layout)).rejects.toThrow(/blank\.png/);
+  });
 
   it("creates one page per image, in the given order", async () => {
     const png = createFakeAsset({ id: "a", name: "a.png" });

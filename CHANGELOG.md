@@ -4,6 +4,21 @@ All notable changes to PDF Workbench are documented here.
 
 ---
 
+## [1.0.6] — 2026-09-16
+
+### Fixed
+
+- **Images → PDF: a stale ingest batch could resurrect cleared images or bypass the 24-image cap.** Overlapping `handleFiles()` calls — e.g. clicking "Clear list" or selecting a second batch while an earlier one was still decoding — let the earlier batch's results land afterward, since nothing tracked whether it had been superseded. A monotonically-increasing request id now marks each ingest batch; a batch that finishes after being superseded (by Clear or a newer selection) discards its results instead of committing them or showing stale success/error banners.
+- **The `MAX_IMAGES` cap could be bypassed by two batches racing against the same stale count.** The limit is now enforced against the live image list at commit time (inside the `setImages` updater), not the `images.length` a batch's closure was created with — a batch that would push the queue past 24 is truncated to the remaining capacity, deterministically, with the existing limit message shown.
+- **A decoded image with zero or negative dimensions could silently produce a blank PDF page.** `createImageAsset()` now rejects such images immediately with a safe, typed `PdfLoadError` naming the file; `buildImagesPdf()` carries the same check as a defensive backstop against a malformed `ImageAsset` built some other way.
+
+### Tests
+
+- 4 new unit tests for `ensureValidImageDimensions` and `buildImagesPdf`'s use of it.
+- 5 new component tests (`ImagesToPdfPage.test.tsx`, new file) covering: a stale batch superseded by Clear, a stale batch superseded by a newer selection, the `MAX_IMAGES` cap holding under overlapping batches, a single batch truncated to remaining capacity, and normal ingestion behavior unchanged.
+
+---
+
 ## [1.0.5] — 2026-09-16
 
 ### Improved

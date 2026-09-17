@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 
 import { triggerBlobDownload } from "../lib/downloads";
@@ -40,6 +40,14 @@ const ImagesToPdfPage = () => {
   const [fitMode, setFitMode] = useState<FitMode>("fit");
   const [isGenerating, setGenerating] = useState(false);
 
+  // Identifies the current ingest batch. Bumped whenever a new selection
+  // starts or the list is cleared, so a batch that's still decoding when
+  // superseded can notice (once it finishes) that it's stale and must not
+  // touch state — otherwise its results could land after a Clear, or two
+  // overlapping batches could both under-count MAX_IMAGES against the same
+  // stale `images.length`.
+  const ingestRequestRef = useRef(0);
+
   const preset = getPresetById(presetId);
   const orientedDimensions = useMemo(() => {
     if (orientation === "portrait") {
@@ -48,37 +56,71 @@ const ImagesToPdfPage = () => {
     return { width: preset.height, height: preset.width };
   }, [orientation, preset.height, preset.width]);
 
-  const handleFiles = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) {
-        return;
+  const handleFiles = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    // Claim this as the current batch. Any earlier in-flight batch that
+    // later finds ingestRequestRef.current has moved past its own id knows
+    // it's been superseded (by this batch, or by Clear) and must discard
+    // its results instead of committing them.
+    const requestId = ++ingestRequestRef.current;
+    setError(null);
+
+    const accepted: ImageAsset[] = [];
+    let hadUnsupportedFile = false;
+    let hadDecodeFailure = false;
+
+    for (const file of Array.from(files)) {
+      if (!isSupportedImageFile(file)) {
+        hadUnsupportedFile = true;
+        continue;
       }
-      setError(null);
-      const accepted: ImageAsset[] = [];
-      for (const file of Array.from(files)) {
-        if (!isSupportedImageFile(file)) {
-          setError("Only image files are supported.");
-          continue;
-        }
-        if (images.length + accepted.length >= MAX_IMAGES) {
-          setError(`Limit ${MAX_IMAGES} images per export.`);
-          break;
-        }
-        try {
-          const asset = await createImageAsset(file);
-          accepted.push(asset);
-        } catch (assetError) {
-          console.error(assetError);
-          setError("Failed to load one of the images.");
-        }
+      try {
+        const asset = await createImageAsset(file);
+        accepted.push(asset);
+      } catch (assetError) {
+        console.error(assetError);
+        hadDecodeFailure = true;
       }
-      if (accepted.length > 0) {
-        setImages((current) => [...current, ...accepted]);
-        setStatus(`${accepted.length} image${accepted.length === 1 ? "" : "s"} ready.`);
-      }
-    },
-    [images.length],
-  );
+    }
+
+    if (requestId !== ingestRequestRef.current) {
+      // Superseded while decoding — drop this batch's results entirely
+      // rather than mutating state (or its success/error banners) after
+      // the fact.
+      return;
+    }
+
+    let addedCount = 0;
+    let cappedCount = 0;
+    if (accepted.length > 0) {
+      setImages((current) => {
+        // Enforce MAX_IMAGES against the real current list at commit time,
+        // not the stale `images.length` this closure was created with —
+        // two overlapping batches can otherwise both under-count the same
+        // snapshot and together exceed the cap.
+        const capacity = Math.max(0, MAX_IMAGES - current.length);
+        const toAdd = accepted.slice(0, capacity);
+        addedCount = toAdd.length;
+        cappedCount = accepted.length - toAdd.length;
+        return toAdd.length > 0 ? [...current, ...toAdd] : current;
+      });
+    }
+
+    if (cappedCount > 0) {
+      setError(`Limit ${MAX_IMAGES} images per export.`);
+    } else if (hadUnsupportedFile) {
+      setError("Only image files are supported.");
+    } else if (hadDecodeFailure) {
+      setError("Failed to load one of the images.");
+    }
+
+    if (addedCount > 0) {
+      setStatus(`${addedCount} image${addedCount === 1 ? "" : "s"} ready.`);
+    }
+  }, []);
 
   const onFilesReceived = useCallback(
     (files: FileList) => {
@@ -123,6 +165,7 @@ const ImagesToPdfPage = () => {
   }, []);
 
   const clearAll = useCallback(() => {
+    ingestRequestRef.current += 1; // invalidate any in-flight ingest batch
     setImages([]);
     setStatus(null);
     setError(null);

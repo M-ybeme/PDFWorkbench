@@ -30,6 +30,30 @@ export type ImagesToPdfExportOptions = ImagesToPdfLayout & {
 
 export const isSupportedImageFile = (file: File) => file.type.startsWith("image/");
 
+/**
+ * Rejects a decoded image whose dimensions can't be placed on a page —
+ * e.g. a corrupt-but-decodable file, or an SVG with no intrinsic size.
+ * Left unchecked, computeImagePlacement silently returns a zero-size
+ * placement for these, producing a blank page with no error anywhere.
+ * Called both where an asset is first created and again in buildImagesPdf,
+ * so a malformed ImageAsset built some other way still can't reach layout.
+ */
+export const ensureValidImageDimensions = (
+  width: number,
+  height: number,
+  fileName: string,
+): void => {
+  if (width > 0 && height > 0) {
+    return;
+  }
+
+  console.warn(`Decoded image "${fileName}" has invalid dimensions: ${width}x${height}`);
+  throw new PdfLoadError(
+    "unsupported",
+    `"${fileName}" could not be read as an image — it may be corrupted or in an unsupported format.`,
+  );
+};
+
 const cloneBytesToArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -150,6 +174,10 @@ export const createImageAsset = async (file: File): Promise<ImageAsset> => {
   const [buffer, dataUrl] = await Promise.all([file.arrayBuffer(), loadDataUrl(file)]);
   const sourceBytes = new Uint8Array(buffer);
   const imageElement = await loadImageElement(dataUrl);
+  const width = imageElement.naturalWidth || imageElement.width;
+  const height = imageElement.naturalHeight || imageElement.height;
+  ensureValidImageDimensions(width, height, file.name);
+
   const { bytes: preparedBytes, embedType } = await ensureEmbeddableImageBytes(
     file.type,
     sourceBytes,
@@ -157,8 +185,6 @@ export const createImageAsset = async (file: File): Promise<ImageAsset> => {
   );
   const bytes = new Uint8Array(preparedBytes.byteLength);
   bytes.set(preparedBytes);
-  const width = imageElement.naturalWidth || imageElement.width;
-  const height = imageElement.naturalHeight || imageElement.height;
   return {
     id: createLocalId("image"),
     name: file.name,
@@ -180,6 +206,8 @@ export const buildImagesPdf = async (
   const doc = await PDFDocument.create();
 
   for (const asset of images) {
+    ensureValidImageDimensions(asset.width, asset.height, asset.name);
+
     const page = doc.addPage([layout.width, layout.height]);
     let embedded;
     try {
